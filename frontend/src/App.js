@@ -12,6 +12,7 @@ import Login from "./webpages/Login";
 import Register from "./webpages/Register";
 import Footer from "./components/Footer";
 import ApplicantDetails from "./webpages/ApplicantDetails";
+import { ACCESS_TOKEN } from "./constants";
 
 
 
@@ -20,7 +21,7 @@ function App() {
   const [userinformation, setuserinformation] = useState([]);
 
   const verifytoken = () => {
-    const access_key = localStorage.getItem("access_token");
+    const access_key = localStorage.getItem(ACCESS_TOKEN);
     const username = localStorage.getItem("username");
 
     fetch("/user/token/verify/", {
