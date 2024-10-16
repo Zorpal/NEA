@@ -11,6 +11,8 @@ import NotFound from "./webpages/404NotFound";
 import Login from "./webpages/Login";
 import Register from "./webpages/Register";
 import Footer from "./components/Footer";
+import ApplicantDetails from "./webpages/ApplicantDetails";
+
 
 
 function App() {
@@ -68,6 +70,8 @@ function App() {
               <Route path="/login/" element={<Login />}></Route>
               <Route path="/register/" element={<Register />}></Route>
               <Route path="*" element={<NotFound />}></Route>
+              <Route path="/applicant/details/" element={<ApplicantDetails />}></Route>
+            
             </Routes>
             <Footer />
           </div>

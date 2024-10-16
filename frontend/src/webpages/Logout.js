@@ -7,8 +7,7 @@ const Logout = () => {
     const { updateuserinformation } = useContext(ApplicantContext);
     
     useEffect(()=>{
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("username");
+        localStorage.clear()
         updateuserinformation([])
         navigate('/')
     }, [])

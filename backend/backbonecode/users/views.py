@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import AccessToken
 
-def create_or_login(email):
+def login(email):
     try:
         applicant = User.objects.get(email=email)
     except User.DoesNotExist:
@@ -21,7 +21,7 @@ class GoogleSSO(APIView):
             code = request.data['code']
             id_token = get_google_token(code)
             email = id_token['email']
-            user = create_or_login(email)
+            user = login(email)
             token = AccessToken.for_user(user)
             return Response({'access_token': str(token), 'username': email})
             

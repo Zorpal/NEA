@@ -22,7 +22,24 @@ class JobDetail(APIView):
         return Response(serializer.data)
 
 
+class UpdateApplicantDetails(ListCreateAPIView):
+    serializer_class = ApplicantSerializer
+    permission_classes = [AllowAny]
 
+    def get_queryset(self):
+        user = self.request.user
+        return ApplicantDetails.objects.filter(fullname=user)
+    
+    def perform_create(self, serializer):
+        if serializer.is_valid():
+            serializer.save(fullname=self.request.user)
+        else:
+            print(serializer.errors)
 
+class DeleteApplicantDetails(DestroyAPIView):
+    serializer_class = ApplicantSerializer
+    permission_classes = [IsAuthenticated]
 
-
+    def get_queryset(self):
+        user = self.request.user
+        return ApplicantDetails.objects.filter(fullname=user)
