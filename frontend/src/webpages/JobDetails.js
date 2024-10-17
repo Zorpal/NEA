@@ -34,6 +34,9 @@ const JobDetails = () => {
       <div className="card-header">{job.jobtitle} - Job at {job.companyname}</div>
       <div className="card-body">
         <p className="card-text">
+          Job Type: {job.jobtype}
+        </p>
+        <p className="card-text">
           Salary: £{job.salary}
         </p>
         <p className="card-text">

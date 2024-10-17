@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import Authorisedroute from "../components/Authorisedroute";
-import DetailsDisplay from "../webpages/DetailsDisplay";
 import api from "../api";
 import { ACCESS_TOKEN } from "../constants";
 
@@ -24,17 +23,6 @@ const ApplicantDetails = () => {
     setToken(storedToken);
     getApplicantDetails();
   }, []);
-
-  const deleteApplicantDetails = (id) => {
-    api.delete(`/applicant/details/delete/${id}/`).then((res) => {
-      if (res.status === 204) {
-        alert("Applicant details deleted successfully");
-        getApplicantDetails();
-      } else {
-        alert("Error deleting applicant details");
-      }
-    });
-  };
 
   const sendApplicantDetails = async (e) => {
     e.preventDefault();

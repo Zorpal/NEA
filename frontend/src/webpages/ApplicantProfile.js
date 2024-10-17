@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import Authorisedroute from "../components/Authorisedroute";
 import DetailsDisplay from "../webpages/DetailsDisplay";
 import api from "../api";
-import { ACCESS_TOKEN } from "../constants";
 
 const ApplicantProfile = () => {
   const [applicantDetails, setApplicantDetails] = useState([]);
@@ -36,7 +35,7 @@ const ApplicantProfile = () => {
 
   return (
     <Authorisedroute>
-          <div className="row justify-content-center">
+          <div className="card">
             <div className="col-md-8">
               <div>Your Profile:</div>
               {applicantDetails.map((applicantDetails) => (
@@ -46,10 +45,11 @@ const ApplicantProfile = () => {
                   key={applicantDetails.id}
                 />
               ))} 
+              <a href="/applicant/details/update/">Add details</a>
+
             </div>
           </div>
-          <a href="/applicant/details/update/">Add details</a>
-
+          
     </Authorisedroute>
   );
 };

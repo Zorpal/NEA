@@ -38,7 +38,7 @@ const Header = () => {
             {userinformation.access_token ? (
                 <>
                     <a className="nav-link" href="/applicant/details/">
-                        Details
+                        Profile
                     </a>
                 </>
             ) : (

@@ -7,12 +7,12 @@ from .models import *
 class JobSerializer(ModelSerializer):
     class Meta:
         model = JobDetails
-        fields = ['id', 'jobtitle', 'salary', 'companyname']
+        fields = ['id', 'jobtitle', 'jobdescription', 'dateposted', 'jobtype']
 
 class JobDetailsSerializer(ModelSerializer):
     class Meta:
         model = JobDetails
-        fields = ['__all__']
+        fields = ['id', 'jobtitle', 'companyname', 'salary', 'jobdescription', 'dateposted', 'deadline', 'location', 'jobtype']
 
 class ApplicantSerializer(ModelSerializer):
     class Meta:
