@@ -40,6 +40,7 @@ class ApplicantDetails(models.Model):
         ('Doctorate', 'Doctorate'),
         ('Surgeon', 'Surgeon'),
         ('Nursing', 'Nursing'),
+        ('null', 'null'),
     ], )
     skill_4 = models.TextField(choices=[
         ('Adult Social Care', 'Adult Social Care'),
@@ -52,6 +53,7 @@ class ApplicantDetails(models.Model):
         ('Doctorate', 'Doctorate'),
         ('Surgeon', 'Surgeon'),
         ('Nursing', 'Nursing'),
+        ('null', 'null'),
     ], )
     skill_5 = models.TextField(choices=[
         ('Adult Social Care', 'Adult Social Care'),
@@ -64,9 +66,17 @@ class ApplicantDetails(models.Model):
         ('Doctorate', 'Doctorate'),
         ('Surgeon', 'Surgeon'),
         ('Nursing', 'Nursing'),
+        ('null', 'null'),
     ], )
     qualifications = models.TextField()
-    preferences = models.CharField(max_length=500, )
+    preferences = models.TextField(choices=[
+        ('Full Time', 'Full Time'),
+        ('Part Time', 'Part Time'),
+        ('Contract', 'Contract'),
+        ('Temporary', 'Temporary'),
+        ('Internship', 'Internship'),
+        ('null', 'null'),
+    ])
     cv = models.FileField(null=True, blank=True, upload_to='cvs/')
 
     def __str__(self):

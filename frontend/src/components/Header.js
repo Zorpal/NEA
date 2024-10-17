@@ -22,9 +22,6 @@ const Header = () => {
         >
           <span className="navbar-toggler-icon"></span>
         </button>
-        <a className="nav-link" href="/">
-          About Us
-        </a>
         
         <div className="collapse navbar-collapse" id="navbarText">
           <ul className="navbar-nav me-auto mb-2 mb-lg-0">
@@ -33,18 +30,25 @@ const Header = () => {
                 Home
               </a>
             </li>
-
-
-            <li className="nav-item">
-              <a className="nav-link" href="/applicant/details/">
-                Details
-              </a>
-            </li>
             <li className="nav-item">
               <a className="nav-link" href="/Jobs/List/">
                 Jobs
               </a>
             </li>
+            {userinformation.access_token ? (
+                <>
+                    <a className="nav-link" href="/applicant/details/">
+                        Details
+                    </a>
+                </>
+            ) : (
+                <>
+                    <a className="nav-link">
+                      | Login to view your profile |
+                    </a>
+                </>
+            )}
+
           </ul>
           <span className="navbar-text">
             {userinformation.access_token ? (
