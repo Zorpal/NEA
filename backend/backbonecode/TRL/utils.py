@@ -8,6 +8,5 @@ def get_google_token(code):
         ['email', 'profile'],
         code
     )
-    print(credentials.id_token)
     return credentials.id_token
 

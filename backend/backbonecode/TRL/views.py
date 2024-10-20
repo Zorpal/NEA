@@ -1,12 +1,8 @@
 from rest_framework.generics import *
 from .models import *
-from .serializers import *
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
-from rest_framework.permissions import AllowAny
-from .serializers import RegisterSerializer
 from .utils import *
 from rest_framework.response import Response
 from django.contrib.auth.models import User
@@ -14,25 +10,40 @@ from rest_framework_simplejwt.tokens import AccessToken
 from django.db import connection
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from django.contrib.auth.hashers import make_password
 
-class JobList(ListAPIView):
-    queryset = JobDetails.objects.all()
-    serializer_class = JobSerializer
+class JobList(APIView):
+    def get(self, request, format=None):
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT * FROM TRL_jobdetails')
+                rows = cursor.fetchall()
+                columns = [col[0] for col in cursor.description]
+                results = [dict(zip(columns, row)) for row in rows]
+            return Response(results)
+        except Exception:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class JobDetail(APIView):
     def get_jobobject(self, pk):
         try:
-            return JobDetails.objects.get(pk=pk)
-        except JobDetails.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT * FROM TRL_jobdetails WHERE id = %s', [pk])
+                row = cursor.fetchone()
+                if row:
+                    columns = [col[0] for col in cursor.description]
+                    return dict(zip(columns, row))
+                else:
+                    return None
+        except Exception as e:
+            return None
     
     def get(self, request, pk, format=None):
         job = self.get_jobobject(pk)
-        serializer = JobDetailsSerializer(job)
-        return Response(serializer.data)
-
-
-
+        if job:
+            return Response(job)
+        else:
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
 class UpdateApplicantDetails(APIView):
     permission_classes = [IsAuthenticated]
@@ -91,12 +102,7 @@ class DeleteApplicantDetails(APIView):
 
 
 
-def login(email):
-    try:
-        applicant = User.objects.get(email=email)
-    except User.DoesNotExist:
-        applicant = User.objects.create_user(username=email, email=email)
-    return applicant
+
 
 class GoogleSSO(APIView):
     def post(self, request):
@@ -104,17 +110,46 @@ class GoogleSSO(APIView):
             code = request.data['code']
             id_token = get_google_token(code)
             email = id_token['email']
-            user = login(email)
+            user = self.login(email)
             token = AccessToken.for_user(user)
             return Response({'access_token': str(token), 'username': email})
-            
-        return Response('ok')
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    def login(self, email):
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT * FROM auth_user WHERE email = %s', [email])
+                row = cursor.fetchone()
+                if row:
+                    user_id = row[0]
+                else:
+                    cursor.execute('''
+                        INSERT INTO auth_user (username, email, password, is_superuser, is_staff, is_active, date_joined, first_name, last_name)
+                        VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s, %s)
+                        RETURNING id
+                    ''', [email, email, '', False, False, True, '', ''])
+                    user_id = cursor.fetchone()[0]
+            user = User.objects.get(pk=user_id)
+        except Exception:
+            return None
+        return user
     
-@api_view(["POST"])
-@permission_classes([AllowAny])
-def register(request):
-    serializer = RegisterSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(status=status.HTTP_200_OK)
-    return Response(serializer.errors, status=status.HTTP_406_NOT_ACCEPTABLE)
+class Register(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, format=None):
+        data = request.data
+        username = data.get('username')
+        password = data.get('password')
+
+        hashed_password = make_password(password)
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('''
+                    INSERT INTO auth_user (username, password, is_superuser, is_staff, is_active, date_joined, first_name, last_name, email)
+                    VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s, %s, %s)
+                ''', [username, hashed_password, False, False, True, '', '', ''])
+            return Response(status=status.HTTP_201_CREATED)
+        except Exception:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
