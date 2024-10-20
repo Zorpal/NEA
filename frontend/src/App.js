@@ -74,7 +74,6 @@ function App() {
               <Route path="*" element={<NotFound />}></Route>
               <Route path="/applicant/details/" element={<ApplicantProfile />}></Route>
               <Route path="/applicant/details/update/" element={<ApplicantDetails />}></Route>
-            
             </Routes>
             <Footer />
           </div>

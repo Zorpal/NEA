@@ -2,7 +2,6 @@ from rest_framework.generics import *
 from .models import *
 from .serializers import *
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.db import models
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
@@ -12,6 +11,9 @@ from .utils import *
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import AccessToken
+from django.db import connection
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 
 class JobList(ListAPIView):
     queryset = JobDetails.objects.all()
@@ -30,27 +32,52 @@ class JobDetail(APIView):
         return Response(serializer.data)
 
 
-class UpdateApplicantDetails(ListCreateAPIView):
-    serializer_class = ApplicantSerializer
+
+
+class UpdateApplicantDetails(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        user = self.request.user
-        return ApplicantDetails.objects.filter(fullname=user)
-    
-    def perform_create(self, serializer):
-        if serializer.is_valid():
-            serializer.save(fullname=self.request.user)
+    def get(self, request, format=None):
+        user = request.user
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT * FROM TRL_applicantdetails WHERE fullname = %s', [user.username])
+                rows = cursor.fetchall()
+                columns = [col[0] for col in cursor.description]
+                results = [dict(zip(columns, row)) for row in rows]
+            return Response(results)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def post(self, request, format=None):
+        user = request.user
+        data = request.data
+
+        cv_file = data.get('cv')
+        if cv_file:
+            file_name = default_storage.save(f'cvs/{cv_file.name}', ContentFile(cv_file.read()))
+            cv_file_path = default_storage.path(file_name)
         else:
-            print(serializer.errors)
+            cv_file_path = None
 
-class DeleteApplicantDetails(DestroyAPIView):
-    serializer_class = ApplicantSerializer
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('INSERT INTO TRL_applicantdetails (fullname, email, phonenumber, skill_1, skill_2, skill_3, skill_4, skill_5, qualifications, preferences, cv) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', 
+                       [user.username, data.get('email'), data.get('phonenumber'), data.get('skill_1'), data.get('skill_2'), data.get('skill_3'), data.get('skill_4'), data.get('skill_5'), data.get('qualifications'), data.get('preferences'), cv_file_path])
+            return Response(status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class DeleteApplicantDetails(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        user = self.request.user
-        return ApplicantDetails.objects.filter(fullname=user)
+    def delete(self, request, pk, format=None):
+        user = request.user
+        with connection.cursor() as cursor:
+            cursor.execute('DELETE FROM TRL_applicantdetails WHERE id = %s', [pk])
+            if cursor.rowcount == 0:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 

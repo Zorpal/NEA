@@ -22,10 +22,9 @@ class ApplicantSerializer(ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     username = serializers.CharField(required=True, validators=[UniqueValidator(queryset=User.objects.all())])
     password = serializers.CharField(required=True, write_only=True)
-    confirmpassword = serializers.CharField(required=True, write_only=True)
     class Meta:
         model = User
-        fields = ('username', 'password', 'confirmpassword')
+        fields = ('username', 'password')
     
     def validatedata(self, attrs): #attrs are short for attributes
         if attrs['password'] != attrs['confirmpassword']:
