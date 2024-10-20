@@ -63,10 +63,20 @@ class UpdateApplicantDetails(APIView):
         try:
             with connection.cursor() as cursor:
                 cursor.execute('INSERT INTO TRL_applicantdetails (fullname, email, phonenumber, skill_1, skill_2, skill_3, skill_4, skill_5, qualifications, preferences, cv) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', 
-                       [user.username, data.get('email'), data.get('phonenumber'), data.get('skill_1'), data.get('skill_2'), data.get('skill_3'), data.get('skill_4'), data.get('skill_5'), data.get('qualifications'), data.get('preferences'), cv_file_path])
+                       [data.get('fullname'),
+                        data.get('email'),
+                        data.get('phonenumber'),
+                        data.get('skill_1'),
+                        data.get('skill_2'),
+                        data.get('skill_3'),
+                        data.get('skill_4'),
+                        data.get('skill_5'),
+                        data.get('qualifications'),
+                        data.get('preferences'),
+                        cv_file_path])
             return Response(status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class DeleteApplicantDetails(APIView):
     permission_classes = [IsAuthenticated]
