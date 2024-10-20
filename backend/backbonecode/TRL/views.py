@@ -100,10 +100,6 @@ class DeleteApplicantDetails(APIView):
                 return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-
-
-
-
 class GoogleSSO(APIView):
     def post(self, request):
         if 'code' in request.data.keys():
