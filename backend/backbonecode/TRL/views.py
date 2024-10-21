@@ -152,7 +152,6 @@ class Register(APIView):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class RetrieveStaffStatus(APIView):
-
     def get(self, request):
         user = request.user
         return Response({

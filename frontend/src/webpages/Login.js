@@ -20,6 +20,7 @@ const Login = () => {
       localStorage.setItem("access_token", data.access);
       localStorage.setItem("refresh_token", data.refresh);
 
+
       const staffResponse = await fetch("/applicant/retrieve-staff-status", {
         method: "GET",
         headers: {
@@ -42,6 +43,7 @@ const Login = () => {
 
   const input = (e) => {
     const { name, value } = e.target;
+    
     setuserlogin({
       ...userlogin,
       [name]: value,
