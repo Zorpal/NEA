@@ -1,6 +1,6 @@
 from rest_framework.generics import *
 from .models import *
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework import status
 from .utils import *
@@ -11,9 +11,11 @@ from django.db import connection
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth import authenticate, login
+
 
 class JobList(APIView):
-    def get(self, request, format=None):
+    def get(self, request):
         try:
             with connection.cursor() as cursor:
                 cursor.execute('SELECT * FROM TRL_jobdetails')
@@ -38,7 +40,7 @@ class JobDetail(APIView):
         except Exception as e:
             return None
     
-    def get(self, request, pk, format=None):
+    def get(self, request, pk):
         job = self.get_jobobject(pk)
         if job:
             return Response(job)
@@ -48,20 +50,20 @@ class JobDetail(APIView):
 class UpdateApplicantDetails(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, format=None):
+    def get(self, request):
         user = request.user
         try:
             with connection.cursor() as cursor:
-                cursor.execute('SELECT * FROM TRL_applicantdetails WHERE fullname = %s', [user.username])
+                cursor.execute('SELECT * FROM TRL_applicantdetails WHERE email = %s', [user.email])
                 rows = cursor.fetchall()
                 columns = [col[0] for col in cursor.description]
                 results = [dict(zip(columns, row)) for row in rows]
             return Response(results)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def post(self, request, format=None):
-        user = request.user
+    def post(self, request):
+
         data = request.data
 
         cv_file = data.get('cv')
@@ -131,12 +133,11 @@ class GoogleSSO(APIView):
         return user
     
 class Register(APIView):
-    permission_classes = [AllowAny]
-
     def post(self, request, format=None):
         data = request.data
         username = data.get('username')
         password = data.get('password')
+        email = data.get('email')
 
         hashed_password = make_password(password)
 
@@ -145,7 +146,16 @@ class Register(APIView):
                 cursor.execute('''
                     INSERT INTO auth_user (username, password, is_superuser, is_staff, is_active, date_joined, first_name, last_name, email)
                     VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s, %s, %s)
-                ''', [username, hashed_password, False, False, True, '', '', ''])
+                ''', [username, hashed_password, False, False, True, '', '', email])
             return Response(status=status.HTTP_201_CREATED)
         except Exception:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class RetrieveStaffStatus(APIView):
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            'username': user.username,
+            'is_staff': user.is_staff,
+        })

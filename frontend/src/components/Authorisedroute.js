@@ -12,7 +12,7 @@ function Authorisedroute({children}) {
     const refreshtoken = async () => {
         const refreshtoken = localStorage.getItem(REFRESH_TOKEN);
         try {
-            const res = await api.post('/user/token/refresh/', {refresh: refreshtoken});
+            const res = await api.post('/applicant/token/refresh/', {refresh: refreshtoken});
             if (res.status === 200) {
                 const {access} = res.data;
                 localStorage.setItem(ACCESS_TOKEN, access);

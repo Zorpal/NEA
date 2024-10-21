@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react";
 import Authorisedroute from "../components/Authorisedroute";
-import api from "../api";
+
 import { ACCESS_TOKEN } from "../constants";
 
 const ApplicantDetails = () => {
-  const [applicantDetails, setApplicantDetails] = useState([]);
   const [fullname, setfullname] = useState("");
   const [email, setemail] = useState("");
   const [phonenumber, setphonenumber] = useState("");
@@ -21,7 +20,6 @@ const ApplicantDetails = () => {
   useEffect(() => {
     const storedToken = localStorage.getItem(ACCESS_TOKEN);
     setToken(storedToken);
-    getApplicantDetails();
   }, []);
 
   const sendApplicantDetails = async (e) => {
@@ -52,7 +50,6 @@ const ApplicantDetails = () => {
       const data = await response.json();
       if (response.ok) {
         alert("Details updated!");
-        getApplicantDetails();
       } else {
         alert("Failed to update details!", data);
         console.error("Error updating applicant details:", data.error);
@@ -62,16 +59,6 @@ const ApplicantDetails = () => {
     }
   };
 
-  const getApplicantDetails = async () => {
-    api
-      .get("/applicant/details/")
-      .then((res) => res.data)
-      .then((data) => {
-        setApplicantDetails(data);
-        console.log(data);
-      })
-      .catch((err) => alert(err));
-  };
   // This function is code taken directly off of bootstrap's docs to use their form validation styling in my code -> https://getbootstrap.com/docs/5.0/forms/validation/
   (() => {
     "use strict";

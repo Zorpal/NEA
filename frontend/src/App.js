@@ -14,6 +14,7 @@ import Footer from "./components/Footer";
 import ApplicantDetails from "./webpages/ApplicantDetails";
 import ApplicantProfile from "./webpages/ApplicantProfile";
 import { ACCESS_TOKEN } from "./constants";
+import EmployeeHome from "./webpages/EmployeeHome";
 
 
 
@@ -25,7 +26,7 @@ function App() {
     const access_key = localStorage.getItem(ACCESS_TOKEN);
     const username = localStorage.getItem("username");
 
-    fetch("/user/token/verify/", {
+    fetch("/applicant/token/verify/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -74,6 +75,7 @@ function App() {
               <Route path="*" element={<NotFound />}></Route>
               <Route path="/applicant/details/" element={<ApplicantProfile />}></Route>
               <Route path="/applicant/details/update/" element={<ApplicantDetails />}></Route>
+              <Route path="/employee/home/" element={<EmployeeHome />}></Route>
             </Routes>
             <Footer />
           </div>

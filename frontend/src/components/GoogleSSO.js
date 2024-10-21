@@ -7,7 +7,7 @@ const GoogleSSO = () => {
   const navigate = useNavigate();
   const handleSuccess = (codeResponse) => {
     const authorisation = codeResponse.code;
-    fetch("/user/g-sso/", {
+    fetch("/applicant/g-sso/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

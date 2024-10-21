@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const Register = () => {
-  const [register, setRegister] = useState({ username: "", password: "" });
+  const [register, setRegister] = useState({ username: "", password: "", email: "" });
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
   const [passwordError, setPasswordError] = useState("");
@@ -45,7 +45,7 @@ const Register = () => {
   };
 
   const fetchRegister = async () => {
-    const response = await fetch("/user/register/", {
+    const response = await fetch("/applicant/register/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -88,6 +88,21 @@ const Register = () => {
         </div>
         <div className="form-text">
           This can be your email address or a specific name you wish to use!
+        </div>
+      </div>
+      <div className="mb-3">
+        <label htmlFor="email" className="form-label">
+          Email
+        </label>
+        <input
+          onChange={handleInput}
+          type="email"
+          className="form-control"
+          name="email"
+          required
+        />
+        <div className="invalid-feedback">
+          Please provide a valid email address.
         </div>
       </div>
       <div className="mb-3">

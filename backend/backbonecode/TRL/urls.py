@@ -14,4 +14,5 @@ urlpatterns = [
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('register/', Register.as_view(), name='register'),
+    path('retrieve-staff-status/', RetrieveStaffStatus.as_view(), name='RetrieveStaffStatus'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
