@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import Authorisedroute from "../components/Authorisedroute";
 import api from "../api";
+import { ApplicantProgressContext } from "../context/ApplicantProgressContext";
 
 const ApplicantProfile = () => {
   const [applicantDetails, setApplicantDetails] = useState([]);
+  const { ApplicantProgress, setApplicantProgress } = useContext(ApplicantProgressContext);
 
   useEffect(() => {
     getApplicantDetails();
@@ -27,35 +29,29 @@ const ApplicantProfile = () => {
       .then((data) => {
         setApplicantDetails(data);
         console.log(data);
+        if (data.length > 0) {
+          setApplicantProgress(1);
+        }
       })
       .catch((err) => alert(err));
   };
 
-  const calculateProgress = (details) => {
-    let filledFields = 0;
-    const totalFields = 11;
-
-    if (details.fullname) filledFields++;
-    if (details.email) filledFields++;
-    if (details.phonenumber) filledFields++;
-    if (details.skill_1) filledFields++;
-    if (details.skill_2) filledFields++;
-    if (details.skill_3) filledFields++;
-    if (details.skill_4) filledFields++;
-    if (details.skill_5) filledFields++;
-    if (details.qualifications) filledFields++;
-    if (details.preferences) filledFields++;
-    if (details.cv) filledFields++;
-
-    return (filledFields / totalFields) * 100;
+  const getProgressBarDetails = () => {
+    switch (ApplicantProgress) {
+      case 1:
+        return { width: "25%", label: "Just starting" };
+      case 2:
+        return { width: "50%", label: "Halfway" };
+      case 3:
+        return { width: "75%", label: "Almost there" };
+      case 4:
+        return { width: "100%", label: "Well done!" };
+      default:
+        return { width: "0%", label: "" };
+    }
   };
 
-  const recruitmentstage = (progress) => {
-    if (progress >= 75) return "Almost there!";
-    if (progress >= 50) return "Halfway done!";
-    if (progress >= 25) return "Getting started!";
-    return "Just beginning!";
-  };
+  const { width, label } = getProgressBarDetails();
 
   return (
     <Authorisedroute>
@@ -111,15 +107,17 @@ const ApplicantProfile = () => {
                 <h5 className="card-title">Application Progress</h5>
                 <p className="card-text">Here is your application progress:</p>
                 {applicantDetails.map((details) => {
-                  const progress = calculateProgress(details);
                   return (
                     <div key={details.id} className="progress mt-3">
                       <div
                         className="progress-bar"
                         role="progressbar"
-                        style={{ width: `${progress}%` }}
+                        style={{ width }}
+                        aria-valuenow={parseInt(width)}
+                        aria-valuemin="0"
+                        aria-valuemax="100"
                       >
-                        {recruitmentstage(progress)}
+                        {label}
                       </div>
                     </div>
                   );

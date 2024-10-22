@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import Authorisedroute from "../components/Authorisedroute";
-
 import { ACCESS_TOKEN } from "../constants";
+import { ApplicantProgressContext } from "../context/ApplicantProgressContext";
 
 const ApplicantDetails = () => {
   const [fullname, setfullname] = useState("");
@@ -16,6 +17,9 @@ const ApplicantDetails = () => {
   const [preferences, setpreferences] = useState("");
   const [cv, setcv] = useState(null);
   const [token, setToken] = useState(null);
+  const {setApplicantProgress} = useContext(ApplicantProgressContext)
+  const {ApplicantProgress} = useContext(ApplicantProgressContext);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const storedToken = localStorage.getItem(ACCESS_TOKEN);
@@ -24,8 +28,8 @@ const ApplicantDetails = () => {
 
   const sendApplicantDetails = async (e) => {
     e.preventDefault();
-    console.log("Form submitted");
-    console.log("Token:", token);
+    console.log("progress: ", ApplicantProgress)
+    setApplicantProgress(1)
     const formData = new FormData();
     formData.append("fullname", fullname);
     formData.append("email", email);
@@ -38,6 +42,7 @@ const ApplicantDetails = () => {
     formData.append("qualifications", qualifications);
     formData.append("preferences", preferences);
     formData.append("cv", cv);
+    formData.append("recruitmentstage", 1);
 
     try {
       const response = await fetch(`/applicant/details/`, {
@@ -50,10 +55,16 @@ const ApplicantDetails = () => {
       const data = await response.json();
       if (response.ok) {
         alert("Details updated!");
+        console.log("Applicant progress set to 1")
+
+
+        navigate("/applicant/details/");
+        window.location.reload();
       } else {
         alert("Failed to update details!", data);
         console.error("Error updating applicant details:", data.error);
       }
+      window.location.reload();
     } catch (error) {
       console.error("Error updating applicant details:", error);
     }
@@ -296,22 +307,26 @@ const ApplicantDetails = () => {
                   <div className="invalid-feedback">
                     Please enter your qualifications!
                   </div>
-                </div>
+                </div> 
                 <div className="mb-3">
                   <label htmlFor="preferences" className="form-label">
-                    Preferences:
+                    Preferences
                   </label>
-                  <textarea
-                    className="form-control"
+                  <select
+                    className="form-select"
                     id="preferences"
                     onChange={(e) => setpreferences(e.target.value)}
                     value={preferences}
                     required
-                  />
+                  >
+                    <option value="">Select a preference</option>
+                    <option value="Full Time">Full Time</option>
+                    <option value="Part Time">Part Time</option>
+                    <option value="Seasonal">Seasonal</option>
+                    <option value="Internship">Internship</option>
+                  </select>
                   <div className="valid-feedback">Looks good!</div>
-                  <div className="invalid-feedback">
-                    Please enter your preferences!
-                  </div>
+                  <div className="invalid-feedback">Please select a preference!</div>
                 </div>
                 <div className="form-group">
                   <label htmlFor="cv">Upload a CV</label>
@@ -323,15 +338,14 @@ const ApplicantDetails = () => {
                     onChange={(e) => setcv(e.target.files[0])}
                   />
                 </div>
+                <button
+                  type="submit"
+                  className="btn btn-primary mt-3"
+                >
+                  Submit
+                </button>
               </form>
             </div>
-            <button
-              type="submit"
-              className="btn btn-primary mt-3"
-              onClick={sendApplicantDetails}
-            >
-              Submit
-            </button>
           </div>
         </div>
       </div>

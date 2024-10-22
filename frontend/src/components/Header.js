@@ -58,10 +58,17 @@ const Header = () => {
               </a>
             </li>
             <li className="nav-item">
-              <a className={`nav-link ${isStaff ? 'text-white' : ''}`} href={isStaff ? "/Jobs/add/" : "/Jobs/List/"}>
+              <a className={`nav-link ${isStaff ? 'text-white' : ''}`} href="/Jobs/list/">
                 Jobs
               </a>
             </li>
+            {isStaff && (
+              <li className="nav-item">
+                <a className={`nav-link ${isStaff ? 'text-white' : ''}`} href="/Jobs/add/">
+                  Add a job
+                </a>
+              </li>
+            )}
             {userinformation.access_token ? (
               <>
                 <a className={`nav-link ${isStaff ? 'text-white' : ''}`} href={isStaff ? "/applicant/list/" : "/applicant/details/"}>
@@ -106,4 +113,4 @@ const Header = () => {
   );
 };
 
-export default Header;
+export default Header

@@ -1,3 +1,4 @@
+// frontend/src/App.js
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import Header from "./components/Header";
@@ -6,6 +7,7 @@ import JobDetails from "./webpages/JobDetails";
 import HomePage from "./webpages/HomePage";
 import { useEffect, useState } from "react";
 import ApplicantContext from "./context/ApplicantContext";
+import { ApplicantProgressProvider } from "./context/ApplicantProgressContext";
 import Logout from "./webpages/Logout";
 import NotFound from "./webpages/404NotFound";
 import Login from "./webpages/Login";
@@ -15,8 +17,8 @@ import ApplicantDetails from "./webpages/ApplicantDetails";
 import ApplicantProfile from "./webpages/ApplicantProfile";
 import { ACCESS_TOKEN } from "./constants";
 import EmployeeHome from "./webpages/EmployeeHome";
-
-
+import ListApplicants from "./webpages/ListApplicants";
+import AddJob from "./webpages/AddJob";
 
 function App() {
   const clientId = process.env.REACT_APP_CLIENT_ID;
@@ -59,27 +61,29 @@ function App() {
 
   return (
     <BrowserRouter>
-      <ApplicantContext.Provider
-        value={{ userinformation, updateuserinformation }}
-      >
-        <GoogleOAuthProvider clientId={clientId}>
-          <div className="App">
-            <Header />
-            <Routes>
-              <Route path="/Jobs/List/" exact element={<ListofJobs />}></Route>
-              <Route path="/Jobs/List/:jobId/" element={<JobDetails />}></Route>
-              <Route path="/" exact element={<HomePage />}></Route>
-              <Route path="/logout/" element={<Logout />}></Route>
-              <Route path="/login/" element={<Login />}></Route>
-              <Route path="/register/" element={<Register />}></Route>
-              <Route path="*" element={<NotFound />}></Route>
-              <Route path="/applicant/details/" element={<ApplicantProfile />}></Route>
-              <Route path="/applicant/details/update/" element={<ApplicantDetails />}></Route>
-              <Route path="/employee/home/" element={<EmployeeHome />}></Route>
-            </Routes>
-            <Footer />
-          </div>
-        </GoogleOAuthProvider>
+      <ApplicantContext.Provider value={{ userinformation, updateuserinformation }}>
+        <ApplicantProgressProvider>
+          <GoogleOAuthProvider clientId={clientId}>
+            <div className="App">
+              <Header />
+              <Routes>
+                <Route path="/Jobs/List/" exact element={<ListofJobs />}></Route>
+                <Route path="/Jobs/List/:jobId/" element={<JobDetails />}></Route>
+                <Route path="/" exact element={<HomePage />}></Route>
+                <Route path="/logout/" element={<Logout />}></Route>
+                <Route path="/login/" element={<Login />}></Route>
+                <Route path="/register/" element={<Register />}></Route>
+                <Route path="*" element={<NotFound />}></Route>
+                <Route path="/applicant/details/" element={<ApplicantProfile />}></Route>
+                <Route path="/applicant/details/update/" element={<ApplicantDetails />}></Route>
+                <Route path="/employee/home/" element={<EmployeeHome />}></Route>
+                <Route path="/applicant/list/" element={<ListApplicants />}></Route>
+                <Route path="/Jobs/add/" element={<AddJob />}></Route>
+              </Routes>
+              <Footer />
+            </div>
+          </GoogleOAuthProvider>
+        </ApplicantProgressProvider>
       </ApplicantContext.Provider>
     </BrowserRouter>
   );

@@ -13,7 +13,33 @@ from django.core.files.base import ContentFile
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth import authenticate, login
 
+#Adds in a new job instance
+class UpdateJob(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def post(self, request):
+        data = request.data
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('''
+                    INSERT INTO TRL_jobdetails (jobtitle, companyname, salary, jobdescription, dateposted, location, jobtype, deadline)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ''', [
+                    data.get('jobtitle'),
+                    data.get('companyname'),
+                    data.get('salary'),
+                    data.get('jobdescription'),
+                    data.get('dateposted'),
+                    data.get('location'),
+                    data.get('jobtype'),
+                    data.get('deadline')
+                ])
+            return Response(status=status.HTTP_201_CREATED)
+        except Exception:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#Returns a list of all jobs 
 class JobList(APIView):
     def get(self, request):
         try:
@@ -26,8 +52,9 @@ class JobList(APIView):
         except Exception:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+#Returns all details of a specific job based on their primary key
 class JobDetail(APIView):
-    def get_jobobject(self, pk):
+    def get_job(self, pk):
         try:
             with connection.cursor() as cursor:
                 cursor.execute('SELECT * FROM TRL_jobdetails WHERE id = %s', [pk])
@@ -41,14 +68,17 @@ class JobDetail(APIView):
             return None
     
     def get(self, request, pk):
-        job = self.get_jobobject(pk)
+        job = self.get_job(pk)
         if job:
             return Response(job)
         else:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
+#Adds in details of the applicant sent from the frontend server to the database
 class UpdateApplicantDetails(APIView):
-    permission_classes = [IsAuthenticated]
+    
+    #Makes sure that people who have logged in and passing in jwt (tokens) can access this, and rejects anyone who isn't logged in or has passed in an expired access token
+    #permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
@@ -65,7 +95,6 @@ class UpdateApplicantDetails(APIView):
     def post(self, request):
 
         data = request.data
-
         cv_file = data.get('cv')
         if cv_file:
             file_name = default_storage.save(f'cvs/{cv_file.name}', ContentFile(cv_file.read()))
@@ -91,7 +120,10 @@ class UpdateApplicantDetails(APIView):
         except Exception:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+#Deletes the details of an applicant from TRL_applicantdetails
 class DeleteApplicantDetails(APIView):
+    
+    #(functionality of IsAuthenticated explained in UpdateApplicantDetails)
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, pk, format=None):
@@ -102,6 +134,7 @@ class DeleteApplicantDetails(APIView):
                 return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+#Allows a user to sign in with google sso through google cloud console, where I have registered this app along with the urls of both servers to communicate with each other
 class GoogleSSO(APIView):
     def post(self, request):
         if 'code' in request.data.keys():
@@ -131,7 +164,8 @@ class GoogleSSO(APIView):
         except Exception:
             return None
         return user
-    
+
+#Registers a new user to the database that takes in the parameters username, password, and email from my frontend server, and hashes the password using Django's built in hashing function based on SHA256
 class Register(APIView):
     def post(self, request, format=None):
         data = request.data
@@ -151,6 +185,7 @@ class Register(APIView):
         except Exception:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+#Returns the username and is_staff attributes of the current user
 class RetrieveStaffStatus(APIView):
     def get(self, request):
         user = request.user
@@ -158,3 +193,21 @@ class RetrieveStaffStatus(APIView):
             'username': user.username,
             'is_staff': user.is_staff,
         })
+
+#
+#Retrieves all applicants from the database, is used by employees (users with the is_staff field set to True)
+class ListApplicants(APIView):
+    
+    #(functionality of IsAuthenticated explained in UpdateApplicantDetails)
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT * FROM TRL_applicantdetails')
+                rows = cursor.fetchall()
+                columns = [col[0] for col in cursor.description]
+                allapplicants = [dict(zip(columns, row)) for row in rows]                 
+            return Response(allapplicants)
+        except Exception:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
