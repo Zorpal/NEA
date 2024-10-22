@@ -46,50 +46,26 @@ const ListofJobs = () => {
 
   return (
     <div>
-      <div className="dropdown filter-container">
+      <div className="dropdown filter-container" style={{ marginBottom: "2rem" }}>
         <label className="" htmlFor="job-filter">
-          Filter by job type:{" "}
+          <strong>
+            Filter by job type: {" "}
+          </strong>
         </label>
         <select
           className="btn btn-secondary dropdown-toggle"
           id="job-filter"
           onChange={handleFilterChange}
+          style={{ marginLeft: "1rem" }}
         >
           <option value="">All</option>
-          <option value="Full Time">
-            Full Time
-          </option>
+          <option value="Full Time">Full Time</option>
           <option value="Part Time">Part Time</option>
           <option value="Seasonal">Seasonal</option>
+          <option value="Temporary">Temporary</option>
           <option value="Internship">Internship</option>
+          <option value="Contract">Contract</option>
         </select>
-      </div>
-      <div class="dropdown">
-        <button
-          class="btn btn-secondary dropdown-toggle"
-          type="button"
-          data-bs-toggle="dropdown"
-          aria-expanded="false"
-        >
-          All
-        </button>
-        <ul class="dropdown-menu">
-          <li>
-            <a class="dropdown-item" href="#">
-              Full Time
-            </a>
-          </li>
-          <li>
-            <a class="dropdown-item" href="#">
-              Part Time
-            </a>
-          </li>
-          <li>
-            <a class="dropdown-item" href="#">
-              Something else here
-            </a>
-          </li>
-        </ul>
       </div>
       <div className="card-group">
         <ul

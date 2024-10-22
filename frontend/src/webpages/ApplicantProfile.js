@@ -1,11 +1,9 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState } from "react";
 import Authorisedroute from "../components/Authorisedroute";
 import api from "../api";
-import { ApplicantProgressContext } from "../context/ApplicantProgressContext";
 
 const ApplicantProfile = () => {
   const [applicantDetails, setApplicantDetails] = useState([]);
-  const { ApplicantProgress, setApplicantProgress } = useContext(ApplicantProgressContext);
 
   useEffect(() => {
     getApplicantDetails();
@@ -29,29 +27,24 @@ const ApplicantProfile = () => {
       .then((data) => {
         setApplicantDetails(data);
         console.log(data);
-        if (data.length > 0) {
-          setApplicantProgress(1);
-        }
       })
       .catch((err) => alert(err));
   };
 
-  const getProgressBarDetails = () => {
-    switch (ApplicantProgress) {
+  const calculateProgress = (trackerValue) => {
+    switch (trackerValue) {
       case 1:
-        return { width: "25%", label: "Just starting" };
+        return { width: "25%", label: "Stage 1/4" };
       case 2:
-        return { width: "50%", label: "Halfway" };
+        return { width: "50%", label: "Stage 2/4" };
       case 3:
-        return { width: "75%", label: "Almost there" };
+        return { width: "75%", label: "Stage 3/4" };
       case 4:
-        return { width: "100%", label: "Well done!" };
+        return { width: "100%", label: "Stage 4/4" };
       default:
         return { width: "0%", label: "" };
     }
   };
-
-  const { width, label } = getProgressBarDetails();
 
   return (
     <Authorisedroute>
@@ -90,6 +83,7 @@ const ApplicantProfile = () => {
                     <p>{details.preferences}</p>
                     <h6>CV</h6>
                     <p>{details.cv}</p>
+                    <p>{details.recruitmenttracker}</p>
                     <button
                       className="btn btn-danger mt-3"
                       onClick={() => deleteApplicantDetails(details.id)}
@@ -107,6 +101,7 @@ const ApplicantProfile = () => {
                 <h5 className="card-title">Application Progress</h5>
                 <p className="card-text">Here is your application progress:</p>
                 {applicantDetails.map((details) => {
+                  const { width, label } = calculateProgress(details.recruitmenttracker);
                   return (
                     <div key={details.id} className="progress mt-3">
                       <div

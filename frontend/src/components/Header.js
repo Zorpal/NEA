@@ -4,8 +4,9 @@ import { Link } from "react-router-dom";
 import trllogo from "../images/trllogo.png";
 
 const Header = () => {
-  const [isStaff, setIsStaff] = useState(false);
   const { userinformation } = useContext(ApplicantContext);
+  const [isStaff, setIsStaff] = useState(false);
+  
 
   useEffect(() => {
     const retrievestaffstatus = async () => {

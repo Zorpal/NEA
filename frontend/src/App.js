@@ -1,4 +1,3 @@
-// frontend/src/App.js
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import Header from "./components/Header";
@@ -7,7 +6,6 @@ import JobDetails from "./webpages/JobDetails";
 import HomePage from "./webpages/HomePage";
 import { useEffect, useState } from "react";
 import ApplicantContext from "./context/ApplicantContext";
-import { ApplicantProgressProvider } from "./context/ApplicantProgressContext";
 import Logout from "./webpages/Logout";
 import NotFound from "./webpages/404NotFound";
 import Login from "./webpages/Login";
@@ -62,7 +60,7 @@ function App() {
   return (
     <BrowserRouter>
       <ApplicantContext.Provider value={{ userinformation, updateuserinformation }}>
-        <ApplicantProgressProvider>
+
           <GoogleOAuthProvider clientId={clientId}>
             <div className="App">
               <Header />
@@ -83,7 +81,7 @@ function App() {
               <Footer />
             </div>
           </GoogleOAuthProvider>
-        </ApplicantProgressProvider>
+
       </ApplicantContext.Provider>
     </BrowserRouter>
   );

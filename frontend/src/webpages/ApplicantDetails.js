@@ -2,7 +2,6 @@ import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import Authorisedroute from "../components/Authorisedroute";
 import { ACCESS_TOKEN } from "../constants";
-import { ApplicantProgressContext } from "../context/ApplicantProgressContext";
 
 const ApplicantDetails = () => {
   const [fullname, setfullname] = useState("");
@@ -17,8 +16,7 @@ const ApplicantDetails = () => {
   const [preferences, setpreferences] = useState("");
   const [cv, setcv] = useState(null);
   const [token, setToken] = useState(null);
-  const {setApplicantProgress} = useContext(ApplicantProgressContext)
-  const {ApplicantProgress} = useContext(ApplicantProgressContext);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,8 +26,6 @@ const ApplicantDetails = () => {
 
   const sendApplicantDetails = async (e) => {
     e.preventDefault();
-    console.log("progress: ", ApplicantProgress)
-    setApplicantProgress(1)
     const formData = new FormData();
     formData.append("fullname", fullname);
     formData.append("email", email);
@@ -42,7 +38,7 @@ const ApplicantDetails = () => {
     formData.append("qualifications", qualifications);
     formData.append("preferences", preferences);
     formData.append("cv", cv);
-    formData.append("recruitmentstage", 1);
+    formData.append("recruitmenttracker", 1);
 
     try {
       const response = await fetch(`/applicant/details/`, {

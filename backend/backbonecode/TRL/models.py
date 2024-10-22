@@ -79,6 +79,7 @@ class ApplicantDetails(models.Model):
         ('null', 'null'),
     ])
     cv = models.FileField(null=True, blank=True, upload_to='cvs/')
+    recruitmenttracker = models.IntegerField()
 
     def __str__(self):
         return self.fullname
@@ -100,6 +101,31 @@ class JobDetails(models.Model):
         ('Internship', 'Internship'),
         ('Seasonal', 'Seasonal'),
     ])
+    jobprimaryskill = models.TextField(choices=[
+        ('Adult Social Care', 'Adult Social Care'),
+        ('Child Social Care', 'Child Social Care'),
+        ('Elderly Social Care', 'Elderly Social Care'),
+        ('Hospital/GP Experience', 'Hospital/GP Experience'),
+        ('Manegerial Experience', 'Manegerial Experience'),
+        ('Technological Experience', 'Technological Experience'),
+        ('Physiotherapy', 'Physiotherapy'),
+        ('Doctorate', 'Doctorate'),
+        ('Surgeon', 'Surgeon'),
+        ('Nursing', 'Nursing'),
+    ])
+    jobsecondaryskill = models.TextField(choices=[
+        ('Adult Social Care', 'Adult Social Care'),
+        ('Child Social Care', 'Child Social Care'),
+        ('Elderly Social Care', 'Elderly Social Care'),
+        ('Hospital/GP Experience', 'Hospital/GP Experience'),
+        ('Manegerial Experience', 'Manegerial Experience'),
+        ('Technological Experience', 'Technological Experience'),
+        ('Physiotherapy', 'Physiotherapy'),
+        ('Doctorate', 'Doctorate'),
+        ('Surgeon', 'Surgeon'),
+        ('Nursing', 'Nursing'),
+    ])
+    jobsuitablefor = models.TextField()
 
     def __str__(self):
         return self.jobtitle

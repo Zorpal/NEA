@@ -11,7 +11,7 @@ from django.db import connection
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.contrib.auth.hashers import make_password
-from django.contrib.auth import authenticate, login
+
 
 #Adds in a new job instance
 class UpdateJob(APIView):
@@ -23,8 +23,8 @@ class UpdateJob(APIView):
         try:
             with connection.cursor() as cursor:
                 cursor.execute('''
-                    INSERT INTO TRL_jobdetails (jobtitle, companyname, salary, jobdescription, dateposted, location, jobtype, deadline)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO TRL_jobdetails (jobtitle, companyname, salary, jobdescription, dateposted, location, jobtype, deadline, jobprimaryskill, jobsecondaryskill, jobsuitablefor)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ''', [
                     data.get('jobtitle'),
                     data.get('companyname'),
@@ -33,7 +33,10 @@ class UpdateJob(APIView):
                     data.get('dateposted'),
                     data.get('location'),
                     data.get('jobtype'),
-                    data.get('deadline')
+                    data.get('deadline'),
+                    data.get('jobprimaryskill'),
+                    data.get('jobsecondaryskill'),
+                    data.get('jobsuitablefor')
                 ])
             return Response(status=status.HTTP_201_CREATED)
         except Exception:
@@ -64,8 +67,8 @@ class JobDetail(APIView):
                     return dict(zip(columns, row))
                 else:
                     return None
-        except Exception as e:
-            return None
+        except Exception:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def get(self, request, pk):
         job = self.get_job(pk)
@@ -77,8 +80,8 @@ class JobDetail(APIView):
 #Adds in details of the applicant sent from the frontend server to the database
 class UpdateApplicantDetails(APIView):
     
-    #Makes sure that people who have logged in and passing in jwt (tokens) can access this, and rejects anyone who isn't logged in or has passed in an expired access token
-    #permission_classes = [IsAuthenticated]
+    # Makes sure that people who have logged in and passing in jwt (tokens) can access this, and rejects anyone who isn't logged in or has passed in an expired access token
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
@@ -93,7 +96,6 @@ class UpdateApplicantDetails(APIView):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def post(self, request):
-
         data = request.data
         cv_file = data.get('cv')
         if cv_file:
@@ -104,7 +106,7 @@ class UpdateApplicantDetails(APIView):
 
         try:
             with connection.cursor() as cursor:
-                cursor.execute('INSERT INTO TRL_applicantdetails (fullname, email, phonenumber, skill_1, skill_2, skill_3, skill_4, skill_5, qualifications, preferences, cv) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', 
+                cursor.execute('INSERT INTO TRL_applicantdetails (fullname, email, phonenumber, skill_1, skill_2, skill_3, skill_4, skill_5, qualifications, preferences, cv, recruitmenttracker) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', 
                        [data.get('fullname'),
                         data.get('email'),
                         data.get('phonenumber'),
@@ -115,8 +117,26 @@ class UpdateApplicantDetails(APIView):
                         data.get('skill_5'),
                         data.get('qualifications'),
                         data.get('preferences'),
-                        cv_file_path])
+                        cv_file_path,
+                        data.get('recruitmenttracker')])
             return Response(status=status.HTTP_201_CREATED)
+        except Exception:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#Updates the value of recruitmenttracker as a way to identify what stage of the recruitment process the applicant is in
+class UpdateRecruitmentTracker(APIView):
+    
+    #(functionality of IsAuthenticated explained in UpdateApplicantDetails)
+    permission_classes = [IsAuthenticated]
+    def post(self, request):
+        data = request.data
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE TRL_applicantdetails SET recruitmenttracker = %s WHERE email = %s",
+                    [data.get('recruitmenttracker'), data.get('email')]
+                )
+            return Response(status=status.HTTP_200_OK)
         except Exception:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -133,6 +153,8 @@ class DeleteApplicantDetails(APIView):
             if cursor.rowcount == 0:
                 return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 
 #Allows a user to sign in with google sso through google cloud console, where I have registered this app along with the urls of both servers to communicate with each other
 class GoogleSSO(APIView):
@@ -194,7 +216,7 @@ class RetrieveStaffStatus(APIView):
             'is_staff': user.is_staff,
         })
 
-#
+
 #Retrieves all applicants from the database, is used by employees (users with the is_staff field set to True)
 class ListApplicants(APIView):
     
@@ -207,7 +229,26 @@ class ListApplicants(APIView):
                 cursor.execute('SELECT * FROM TRL_applicantdetails')
                 rows = cursor.fetchall()
                 columns = [col[0] for col in cursor.description]
-                allapplicants = [dict(zip(columns, row)) for row in rows]                 
-            return Response(allapplicants)
+                listofapplicants = [dict(zip(columns, row)) for row in rows]                 
+            return Response(listofapplicants)
+        except Exception:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+#Retrieves emails of applicants whose skills match job primary or secondary skills
+class RetrieveApplicantSkills(APIView):
+    def post(self, request):
+        skill = request.data.get('skill')
+        if not skill:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('''
+                    SELECT DISTINCT a.email
+                    FROM TRL_applicantdetails a
+                    WHERE %s IN (a.skill_1, a.skill_2, a.skill_3, a.skill_4, a.skill_5)
+                ''', [skill])
+                rows = cursor.fetchall()
+                emails = [row[0] for row in rows]
+            return Response({'emails': emails})
         except Exception:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)

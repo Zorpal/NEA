@@ -17,5 +17,7 @@ urlpatterns = [
     path('register/', Register.as_view(), name='register'),
     path('retrieve-staff-status/', RetrieveStaffStatus.as_view(), name='RetrieveStaffStatus'),
     path('applicant/list/', ListApplicants.as_view(), name='ApplicantList'),
+    path('updatert/', UpdateRecruitmentTracker.as_view(), name='UpdateRecruitmentTracker'),
+    path('skills/', RetrieveApplicantSkills.as_view(), name='Skills'),
     
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
