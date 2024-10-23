@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import Authorisedroute from "../components/Authorisedroute";
 import { ACCESS_TOKEN } from "../constants";
+import api from "../api";
 
 const ApplicantDetails = () => {
   const [fullname, setfullname] = useState("");
@@ -41,26 +42,20 @@ const ApplicantDetails = () => {
     formData.append("recruitmenttracker", 1);
 
     try {
-      const response = await fetch(`/applicant/details/`, {
-        method: "POST",
-        body: formData,
+      const response = await api.post("/applicant/details/", formData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      const data = await response.json();
-      if (response.ok) {
+      if (response.status === 201) {
         alert("Details updated!");
-        console.log("Applicant progress set to 1")
-
-
+        console.log("Applicant progress set to 1");
         navigate("/applicant/details/");
         window.location.reload();
       } else {
-        alert("Failed to update details!", data);
-        console.error("Error updating applicant details:", data.error);
+        alert("Failed to update details!", response.data);
+        console.error("Error updating applicant details:", response.data.error);
       }
-      window.location.reload();
     } catch (error) {
       console.error("Error updating applicant details:", error);
     }

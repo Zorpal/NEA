@@ -6,41 +6,19 @@ const JobDetails = () => {
   const { jobId } = useParams();
   const [job, setJob] = useState({});
   const [isStaff, setIsStaff] = useState(false);
-  const [applicantDetails, setApplicantDetails] = useState([]);
   const [applicantEmails, setApplicantEmails] = useState([]);
   const [secondaryApplicantEmails, setSecondaryApplicantEmails] = useState([]);
 
-  useEffect(() => {
-    getApplicantDetails();
-  }, []);
-
-  const getApplicantDetails = async () => {
-    api
-      .get("/applicant/applicant/list/")
-      .then((res) => res.data)
-      .then((data) => {
-        setApplicantDetails(data);
-        console.log(data);
-      })
-      .catch((err) => alert(err));
-  };
 
   useEffect(() => {
     const retrievestaffstatus = async () => {
-      const token = localStorage.getItem("access_token");
-      if (token) {
-        const response = await fetch("/applicant/retrieve-staff-status", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setIsStaff(data.is_staff);
-        }
+      try {
+      const response = await api.get("/applicant/retrieve-staff-status");
+      if (response.status === 200) {
+        setIsStaff(response.data.is_staff);
+      }
+      } catch (error) {
+      console.error("Error retrieving staff status:", error);
       }
     };
     retrievestaffstatus();
@@ -64,15 +42,13 @@ const JobDetails = () => {
     }
   }, [job.jobsecondaryskill]);
 
-  const getJob = () => {
-    fetch(`/Jobs/List/${jobId}`)
-      .then((response) => response.json())
-      .then((data) => {
-        setJob(data);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+  const getJob = async () => {
+    try {
+      const response = await api.get(`/Jobs/List/${jobId}`);
+      setJob(response.data);
+    } catch (error) {
+      console.error("Error fetching job details:", error);
+    }
   };
 
   const updateRecruitmentTracker = async (email) => {
@@ -85,22 +61,10 @@ const JobDetails = () => {
   };
 
   const primaryskilltofilterapplicants = (primarySkill) => {
-    fetch("/applicant/skills/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ skill: primarySkill }),
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          const err = await response.json();
-          throw err;
-        }
-        return response.json();
-      })
-      .then((data) => {
-        setApplicantEmails(data.emails);
+    api
+      .post("/applicant/skills/", { skill: primarySkill })
+      .then((response) => {
+        setApplicantEmails(response.data.emails);
       })
       .catch((error) => {
         console.error("Error:", error);
@@ -109,22 +73,10 @@ const JobDetails = () => {
   };
 
   const secondaryskilltofilterapplicants = (secondarySkill) => {
-    fetch("/applicant/skills/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ skill: secondarySkill }),
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          const err = await response.json();
-          throw err;
-        }
-        return response.json();
-      })
-      .then((data) => {
-        setSecondaryApplicantEmails(data.emails);
+    api
+      .post("/applicant/skills/", { skill: secondarySkill })
+      .then((response) => {
+        setSecondaryApplicantEmails(response.data.emails);
       })
       .catch((error) => {
         console.error("Error:", error);

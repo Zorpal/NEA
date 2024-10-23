@@ -25,7 +25,7 @@ const ListApplicants = () => {
             .post("/applicant/updatert/", { email, recruitmenttracker: 2 })
             .then((res) => {
                 alert("Recruitment tracker updated successfully");
-                getApplicantDetails(); // Refresh the list after update
+                getApplicantDetails();
             })
             .catch((err) => alert(err));
     };
@@ -43,7 +43,7 @@ const ListApplicants = () => {
                             }`}
                             style={{
                                 border: details.recruitmenttracker <= 1 ? "2px solid red" : "none",
-                                margin: "5px" // Add margin to separate the cards
+                                margin: "5px" 
                             }}
                         >
                             <div className="card">

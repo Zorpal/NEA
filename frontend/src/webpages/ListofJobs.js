@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+
 // Functional component "ListofJobs" to be called upon in my website by exporting it.
 const ListofJobs = () => {
   const [jobs, setJobs] = useState([]);

@@ -10,7 +10,8 @@ const ApplicantProfile = () => {
   }, []);
 
   const deleteApplicantDetails = (id) => {
-    api.delete(`/applicant/details/delete/${id}/`).then((res) => {
+    api
+      .delete(`/applicant/details/delete/${id}/`).then((res) => {
       if (res.status === 204) {
         alert("Applicant details deleted successfully");
         getApplicantDetails();
@@ -43,6 +44,21 @@ const ApplicantProfile = () => {
         return { width: "100%", label: "Stage 4/4" };
       default:
         return { width: "0%", label: "" };
+    }
+  };
+
+  const getTrackerText = (trackerValue) => {
+    switch (trackerValue) {
+      case 1:
+        return "We have successfully received your application and are in the process of reviewing it.";
+      case 2:
+        return "Your application has been reviewed by one of our members and we are in the process of searching for a job that best matches your skills.";
+      case 3:
+        return "We have found you a job that matches your skills, please confirm that you are interested in this job!";
+      case 4:
+        return "We have successfully matched you with a job, congratulations! Please look out for an email/call from us with further details.";
+      default:
+        return "";
     }
   };
 
@@ -101,7 +117,12 @@ const ApplicantProfile = () => {
                 <h5 className="card-title">Application Progress</h5>
                 <p className="card-text">Here is your application progress:</p>
                 {applicantDetails.map((details) => {
-                  const { width, label } = calculateProgress(details.recruitmenttracker);
+                  const { width, label } = calculateProgress(
+                    details.recruitmenttracker
+                  );
+                  const trackerText = getTrackerText(
+                    details.recruitmenttracker
+                  );
                   return (
                     <div key={details.id} className="progress mt-3">
                       <div
@@ -119,6 +140,17 @@ const ApplicantProfile = () => {
                 })}
               </div>
             </div>
+            {applicantDetails.map((details) => {
+              const trackerText = getTrackerText(details.recruitmenttracker);
+              return (
+                <div key={details.id} className="card mt-3">
+                  <div className="card-body">
+                    <h5 className="card-title">Progress Center</h5>
+                    <p className="card-text">{trackerText}</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
