@@ -4,7 +4,7 @@ import Header from "./components/Header";
 import ListofJobs from "./webpages/ListofJobs";
 import JobDetails from "./webpages/JobDetails";
 import HomePage from "./webpages/HomePage";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import ApplicantContext from "./context/ApplicantContext";
 import Logout from "./webpages/Logout";
 import NotFound from "./webpages/404NotFound";
@@ -19,12 +19,12 @@ import ListApplicants from "./webpages/ListApplicants";
 import AddJob from "./webpages/AddJob";
 
 function App() {
+  //takes in my google app's client id from the environment variable file
   const clientId = process.env.REACT_APP_CLIENT_ID;
-  const [userinformation, setuserinformation] = useState([]);
+  const [userinformation, setuserinformation] = useState([]); //stores the accesstoken and username of the user
 
-  const verifytoken = () => {
+  const verifytoken = useCallback(() => {
     const access_key = localStorage.getItem(ACCESS_TOKEN);
-    const username = localStorage.getItem("username");
 
     fetch("/applicant/token/verify/", {
       method: "POST",
@@ -35,32 +35,28 @@ function App() {
     }).then((response) => {
       if (response.ok) {
         setuserinformation({
-          ...userinformation,
           access_token: access_key,
-          username: username,
         });
       } else {
         setuserinformation({
-          ...userinformation,
           access_token: null,
-          username: null,
         });
       }
     });
-  };
+  }, []);
 
   useEffect(() => {
     verifytoken();
-  }, []);
+  }, [verifytoken]);
 
   const updateuserinformation = (value) => {
     setuserinformation(value);
   };
 
   return (
-    <BrowserRouter>
+    //BrowserRouter allows for my pages to render without necessarily having to be refreshed every time new components are rendered
+    <BrowserRouter> 
       <ApplicantContext.Provider value={{ userinformation, updateuserinformation }}>
-
           <GoogleOAuthProvider clientId={clientId}>
             <div className="App">
               <Header />
@@ -81,7 +77,6 @@ function App() {
               <Footer />
             </div>
           </GoogleOAuthProvider>
-
       </ApplicantContext.Provider>
     </BrowserRouter>
   );

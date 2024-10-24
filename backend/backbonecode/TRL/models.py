@@ -80,6 +80,7 @@ class ApplicantDetails(models.Model):
     ])
     cv = models.FileField(null=True, blank=True, upload_to='cvs/')
     recruitmenttracker = models.IntegerField()
+    accepted_job = models.CharField(max_length=300, blank=True, null=True)
 
     def __str__(self):
         return self.fullname
@@ -125,7 +126,7 @@ class JobDetails(models.Model):
         ('Surgeon', 'Surgeon'),
         ('Nursing', 'Nursing'),
     ])
-    jobsuitablefor = models.TextField()
+    jobsuitablefor = models.ManyToManyField(ApplicantDetails, related_name='job_suitable_for', blank=True)
 
     def __str__(self):
         return self.jobtitle

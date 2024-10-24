@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import Authorisedroute from "../components/Authorisedroute";
-import { ACCESS_TOKEN } from "../constants";
 import { useNavigate } from "react-router-dom";
+import api from "../api";
 
-
+//function to add a job listing to the database in the backend server
 const AddJob = () => {
   const [jobtitle, setjobtitle] = useState("");
   const [companyname, setcompanyname] = useState("");
@@ -15,19 +15,33 @@ const AddJob = () => {
   const [deadline, setdeadline] = useState("");
   const [jobprimaryskill, setjobprimaryskill] = useState("");
   const [jobsecondaryskill, setjobsecondaryskill] = useState("");
-  const jobsuitablefor = 0
-  const [token, setToken] = useState(null);
+  const jobsuitablefor = 0;
+  const [isStaff, setIsStaff] = useState(false);
   const navigate = useNavigate();
 
+  //determines if the user is an employee, if not then it redirects them to the homepage
   useEffect(() => {
-    const storedToken = localStorage.getItem(ACCESS_TOKEN);
-    setToken(storedToken);
-  }, []);
+    const retrievestaffstatus = async () => {
+      try {
+        const response = await api.get("/applicant/retrieve-staff-status");
+        if (response.status === 200) {
+          setIsStaff(response.data.is_staff);
+          if (!response.data.is_staff) {
+            navigate("/");
+          }
+        }
+      } catch (error) {
+        console.error("Error retrieving staff status:", error);
+        navigate("/");
+      }
+    };
+    retrievestaffstatus();
+  }, [navigate]);
 
   const sendJobDetails = async (e) => {
     e.preventDefault();
     console.log("Form submitted");
-    console.log("Token:", token);
+
     const formData = new FormData();
     formData.append("jobtitle", jobtitle);
     formData.append("companyname", companyname);
@@ -39,30 +53,26 @@ const AddJob = () => {
     formData.append("deadline", deadline);
     formData.append("jobprimaryskill", jobprimaryskill);
     formData.append("jobsecondaryskill", jobsecondaryskill);
-    formData.append("jobsuitablefor", jobsuitablefor)
+    formData.append("jobsuitablefor", jobsuitablefor);
 
     try {
-      const response = await fetch(`/Jobs/Update/`, {
-        method: "POST",
-        body: formData,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      if (response.ok) {
+      const response = await api.post("/Jobs/Update/", formData);
+      if (response.status === 201) {
         alert("Job listing added!");
         navigate("/employee/home/");
         window.location.reload();
       } else {
-        alert("Failed to send job!", data);
-        console.error("Error updating job details:", data.error);
+        alert("Failed to send job!", response.data);
+        console.error("Error updating job details:", response.data.error);
       }
-      window.location.reload();
     } catch (error) {
       console.error("Error updating job details:", error);
     }
   };
+
+  if (!isStaff) {
+    return null;
+  }
 
   return (
     <Authorisedroute>
@@ -270,4 +280,5 @@ const AddJob = () => {
     </Authorisedroute>
   );
 };
+
 export default AddJob;

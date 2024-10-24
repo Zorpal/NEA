@@ -10,7 +10,6 @@ const Login = () => {
   const completelogin = async () => {
     const usernameLength = userlogin.username.length;
     const encryptedPassword = encryptpassword(userlogin.password, usernameLength); //this password is shifted using a caesar shift that shifts based on the length of the username
-    
     const response = await fetch("/applicant/token/", {
       method: "POST",
       headers: {
@@ -47,7 +46,6 @@ const Login = () => {
 
   const input = (e) => {
     const { name, value } = e.target;
-    
     setuserlogin({
       ...userlogin,
       [name]: value,
@@ -61,17 +59,11 @@ const Login = () => {
   const encryptpassword = (text, shift) => {
     return text.split('').map(char => {
       const code = char.charCodeAt(0);
-      if (code >= 65 && code <= 90) {
-        return String.fromCharCode(((code - 65 + shift) % 26) + 65);
-      } else if (code >= 97 && code <= 122) {
-        return String.fromCharCode(((code - 97 + shift) % 26) + 97);
-      } else if (code >= 48 && code <= 57) {
-        return String.fromCharCode(((code - 48 + shift) % 10) + 48);
-      }
-      return char;
+      return String.fromCharCode(code + shift);
     }).join('');
   };
 
+  //renders the login form, and a sign in with google button 
   return (
     <form className="container-sm w-25" onSubmit={submit}>
       <div className="mb-3">
@@ -100,7 +92,10 @@ const Login = () => {
       <button type="submit" className="btn btn-primary">
         Login
       </button>
-      <GoogleSSO />
+      <div className="mt-3 text-center">
+        <p>Or continue with Google</p>
+        <GoogleSSO />
+      </div>
     </form>
   );
 };

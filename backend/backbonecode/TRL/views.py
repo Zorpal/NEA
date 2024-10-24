@@ -124,21 +124,6 @@ class UpdateApplicantDetails(APIView):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #Updates the value of recruitmenttracker as a way to identify what stage of the recruitment process the applicant is in
-class UpdateRecruitmentTracker(APIView):
-    
-    #(functionality of IsAuthenticated explained in UpdateApplicantDetails)
-    permission_classes = [IsAuthenticated]
-    def post(self, request):
-        data = request.data
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    "UPDATE TRL_applicantdetails SET recruitmenttracker = %s WHERE email = %s",
-                    [data.get('recruitmenttracker'), data.get('email')]
-                )
-            return Response(status=status.HTTP_200_OK)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #Deletes the details of an applicant from TRL_applicantdetails
 class DeleteApplicantDetails(APIView):
@@ -252,3 +237,30 @@ class RetrieveApplicantSkills(APIView):
             return Response({'emails': emails})
         except Exception:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class UpdateRecruitmentTracker(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        tracker_value = request.data.get('recruitmenttracker')
+        job_id = request.data.get('job_id')
+
+        try:
+            applicant = ApplicantDetails.objects.get(email=email)
+            applicant.recruitmenttracker = tracker_value
+
+            if tracker_value == 3 and job_id:
+                job = JobDetails.objects.get(id=job_id)
+                job.jobsuitablefor.add(applicant)
+                job.save()
+
+            if tracker_value == 4:
+                job_title = request.data.get('job_title')
+                applicant.accepted_job_title = job_title
+
+            applicant.save()
+            return Response({'status': 'success'}, status=200)
+        except ApplicantDetails.DoesNotExist:
+            return Response({'error': 'Applicant not found'}, status=404)
+        except JobDetails.DoesNotExist:
+            return Response({'error': 'Job not found'}, status=404)

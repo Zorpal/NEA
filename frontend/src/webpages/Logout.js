@@ -10,7 +10,7 @@ const Logout = () => {
         localStorage.clear()
         updateuserinformation([])
         navigate('/')
-    }, [])
+    }, [navigate, updateuserinformation])
 
   return (
     <div>Logout</div>

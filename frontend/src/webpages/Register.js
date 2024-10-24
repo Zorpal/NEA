@@ -16,6 +16,7 @@ const Register = () => {
       (register.password !== confirmPassword || !isPasswordValid) && !ignoreWarnings
     );
   }, [register.password, confirmPassword, ignoreWarnings]);
+
   //this makes sure the password has at least 1 symbol, number and must be at least 8 characters long. However the user can choose to bypass this by a checkbox saying they confirm to ignore the warnings
   const validatePassword = (password) => {
     const hasNumber = /\d/.test(password);
@@ -62,17 +63,11 @@ const Register = () => {
     }
   };
 
+  //encrypts the user's password with a caesar shift based on the length of the username
   const encryptpassword = (text, shift) => {
     return text.split('').map(char => {
       const code = char.charCodeAt(0);
-      if (code >= 65 && code <= 90) {
-        return String.fromCharCode(((code - 65 + shift) % 26) + 65);
-      } else if (code >= 97 && code <= 122) {
-        return String.fromCharCode(((code - 97 + shift) % 26) + 97);
-      } else if (code >= 48 && code <= 57) {
-        return String.fromCharCode(((code - 48 + shift) % 10) + 48);
-      }
-      return char;
+      return String.fromCharCode(code + shift);
     }).join('');
   };
 

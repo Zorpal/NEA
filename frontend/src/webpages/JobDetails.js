@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
 
@@ -9,26 +9,34 @@ const JobDetails = () => {
   const [applicantEmails, setApplicantEmails] = useState([]);
   const [secondaryApplicantEmails, setSecondaryApplicantEmails] = useState([]);
 
-
   useEffect(() => {
     const retrievestaffstatus = async () => {
       try {
-      const response = await api.get("/applicant/retrieve-staff-status");
-      if (response.status === 200) {
-        setIsStaff(response.data.is_staff);
-      }
+        const response = await api.get("/applicant/retrieve-staff-status");
+        if (response.status === 200) {
+          setIsStaff(response.data.is_staff);
+        }
       } catch (error) {
-      console.error("Error retrieving staff status:", error);
+        console.error("Error retrieving staff status:", error);
       }
     };
     retrievestaffstatus();
   }, []);
 
+  const getJob = useCallback(async () => {
+    try {
+      const response = await api.get(`/Jobs/List/${jobId}`);
+      setJob(response.data);
+    } catch (error) {
+      console.error("Error fetching job details:", error);
+    }
+  }, [jobId]);
+
   useEffect(() => {
     if (jobId) {
       getJob();
     }
-  }, [jobId]);
+  }, [jobId, getJob]);
 
   useEffect(() => {
     if (job.jobprimaryskill) {
@@ -42,18 +50,9 @@ const JobDetails = () => {
     }
   }, [job.jobsecondaryskill]);
 
-  const getJob = async () => {
-    try {
-      const response = await api.get(`/Jobs/List/${jobId}`);
-      setJob(response.data);
-    } catch (error) {
-      console.error("Error fetching job details:", error);
-    }
-  };
-
   const updateRecruitmentTracker = async (email) => {
     api
-      .post("/applicant/updatert/", { email, recruitmenttracker: 3 })
+      .post("/applicant/applicant/updatert/", { email, recruitmenttracker: 3, job_id: jobId })
       .then((res) => {
         alert("Recruitment tracker updated successfully");
       })

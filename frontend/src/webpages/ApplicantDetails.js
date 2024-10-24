@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Authorisedroute from "../components/Authorisedroute";
 import { ACCESS_TOKEN } from "../constants";
@@ -63,7 +63,6 @@ const ApplicantDetails = () => {
 
   // This function is code taken directly off of bootstrap's docs to use their form validation styling in my code -> https://getbootstrap.com/docs/5.0/forms/validation/
   (() => {
-    "use strict";
     const forms = document.querySelectorAll(".needs-validation");
     Array.from(forms).forEach((form) => {
       form.addEventListener(

@@ -2,11 +2,11 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import GoogleButton from "react-google-button";
 import { useGoogleLogin } from "@react-oauth/google";
-
+// function to allow google users to sign in or register
 const GoogleSSO = () => {
   const navigate = useNavigate();
-  const handleSuccess = (codeResponse) => {
-    const authorisation = codeResponse.code;
+  const handleSuccess = (Response) => {
+    const authorisation = Response.code;
     fetch("/applicant/g-sso/", {
       method: "POST",
       headers: {

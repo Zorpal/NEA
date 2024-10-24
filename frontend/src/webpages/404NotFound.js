@@ -1,3 +1,6 @@
+import React from 'react';
+
+//returns a not found page
 function NotFound() {
     return <div>
         <h1>404 Not Found</h1>

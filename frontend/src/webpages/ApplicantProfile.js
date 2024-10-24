@@ -32,6 +32,20 @@ const ApplicantProfile = () => {
       .catch((err) => alert(err));
   };
 
+  const acceptJob = (jobTitle, email) => {
+    console.log(email, jobTitle);
+    api
+      .post("/applicant/updatert/", { email, recruitmenttracker: 4, job_title: jobTitle })
+      .then((res) => {
+        if (res.status === 200) {
+          alert("Job accepted successfully");
+          getApplicantDetails();
+        } else {
+          alert("Error accepting job");
+        }
+      });
+  };
+
   const calculateProgress = (trackerValue) => {
     switch (trackerValue) {
       case 1:
@@ -120,9 +134,6 @@ const ApplicantProfile = () => {
                   const { width, label } = calculateProgress(
                     details.recruitmenttracker
                   );
-                  const trackerText = getTrackerText(
-                    details.recruitmenttracker
-                  );
                   return (
                     <div key={details.id} className="progress mt-3">
                       <div
@@ -147,6 +158,20 @@ const ApplicantProfile = () => {
                   <div className="card-body">
                     <h5 className="card-title">Progress Center</h5>
                     <p className="card-text">{trackerText}</p>
+                    {details.recruitmenttracker === 3 && (
+                      <div className="card mt-3">
+                        <div className="card-body">
+                          <h5 className="card-title">Recommended Job</h5>
+                          <p className="card-text">{details.recommended_job_title}</p>
+                          <button
+                            className="btn btn-success"
+                            onClick={() => acceptJob(details.recommended_job_title, details.email)}
+                          >
+                            Accept Job
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

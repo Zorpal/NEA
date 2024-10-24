@@ -1,34 +1,32 @@
 import React, { useEffect, useState } from "react";
+import api from "../api";
 
+//function to display a footer with the contents depending on the logged in user
 const Footer = () => {
   const [isStaff, setIsStaff] = useState(false);
 
   useEffect(() => {
     const retrievestaffstatus = async () => {
-      const token = localStorage.getItem("access_token");
-      if (token) {
-        const response = await fetch("/applicant/retrieve-staff-status", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+      try {
+        const response = await api.get("/applicant/retrieve-staff-status");
 
-        if (response.ok) {
-          const data = await response.json();
+        if (response.status === 200) {
+          const data = response.data;
           setIsStaff(data.is_staff);
         }
+      } catch (error) {
+        console.error("Failed to retrieve staff status", error);
       }
     };
     retrievestaffstatus();
   }, []);
+//renders the footer 
   return (
     <nav className="navbar fixed-bottom navbar-expand-lg navbar-dark bg-dark">
       <div className="container-md">
         <a className="navbar-brand" href="/">
           {isStaff
-            ? "Employee Portal"
+            ? "Employee Portal - Templewood Recruitment - Copyright © 2018 Templewood, All Rights Reserved. Registered No: 10041372"
             : "Templewood Recruitment Applicant Portal - Copyright © 2018 Templewood, All Rights Reserved. Registered No: 10041372"}
         </a>
       </div>
