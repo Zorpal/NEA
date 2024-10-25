@@ -80,17 +80,16 @@ class Applicantdetails(QueryClass):
 #get method to return the applicant details of the user
     def get(self, request):
         user = request.user
-#try except satement to query the database for the applicant's details 
         try:
             query = '''
-                SELECT TRL_applicantdetails.id, TRL_applicantdetails.fullname, TRL_applicantdetails.email, TRL_applicantdetails.phonenumber, TRL_applicantdetails.qualifications, TRL_applicantdetails.preferences, TRL_applicantdetails.cv, TRL_applicantdetails.recruitmenttracker, 
-                       GROUP_CONCAT(s.name) as skills
+                SELECT TRL_applicantdetails.*, 
+                GROUP_CONCAT(TRL_skill.name) as skills
                 FROM TRL_applicantdetails TRL_applicantdetails
-                LEFT JOIN TRL_applicantskill ask ON TRL_applicantdetails.email = ask.applicant_email
-                LEFT JOIN TRL_skill s ON ask.skill_id = s.id
+                LEFT JOIN TRL_applicantskill ON TRL_applicantdetails.email = TRL_applicantskill.applicant_email
+                LEFT JOIN TRL_skill ON TRL_applicantskill.skill_id = TRL_skill.id
                 WHERE TRL_applicantdetails.email = %s
-                GROUP BY TRL_applicantdetails.id, TRL_applicantdetails.fullname, TRL_applicantdetails.email, TRL_applicantdetails.phonenumber, TRL_applicantdetails.qualifications, TRL_applicantdetails.preferences, TRL_applicantdetails.cv, TRL_applicantdetails.recruitmenttracker
-            '''
+                GROUP BY TRL_applicantdetails.id
+                '''
             rows, description = self.execute_query(query, [user.email])
             if rows is not None:
                 columns = [col[0] for col in description]
@@ -133,7 +132,6 @@ class Applicantdetails(QueryClass):
                     cv_file_path,
                     data.get('recruitmenttracker')
                 ])
-                applicant_id = cursor.fetchone()[0]
             #makes sure that there is no previous email that is the same as the one inputted
             self.execute_query('DELETE FROM TRL_applicantskill WHERE applicant_email = %s', [data.get('email')])
             #creates a list of the skills inputted by the user
@@ -200,8 +198,7 @@ class RetrieveApplicantSkills(QueryClass):
 
 #class to update the recruitment tracker value, imitates a dynamic tracker for the applicant
 class UpdateRecruitmentTracker(QueryClass):
-    #requires employee permissions/head admin permissions rather than just anyone who is logged in
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated]
     #post method to update the recruitment tracker value
     def post(self, request):
         email = request.data.get('email')

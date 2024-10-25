@@ -7,17 +7,14 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
   const [passwordError, setPasswordError] = useState("");
-  const [ignoreWarnings, setIgnoreWarnings] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const isPasswordValid = validatePassword(register.password);
-    setIsSubmitDisabled(
-      (register.password !== confirmPassword || !isPasswordValid) && !ignoreWarnings
-    );
-  }, [register.password, confirmPassword, ignoreWarnings]);
+    setIsSubmitDisabled(register.password !== confirmPassword || !isPasswordValid);
+  }, [register.password, confirmPassword]);
 
-  //this makes sure the password has at least 1 symbol, number and must be at least 8 characters long. However the user can choose to bypass this by a checkbox saying they confirm to ignore the warnings
+  //this makes sure the password has at least 1 symbol, number and must be at least 8 characters long.
   const validatePassword = (password) => {
     const hasNumber = /\d/.test(password);
     const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password);
@@ -43,19 +40,15 @@ const Register = () => {
     }
   };
 
-  const bypasssecurepassword = (e) => {
-    setIgnoreWarnings(e.target.checked);
-  };
-
   const fetchRegister = async () => {
-    const usernamelength = register.username.length
+    const usernamelength = register.username.length;
     const encryptedPassword = encryptpassword(register.password, usernamelength); //this password is shifted using a caesar shift that shifts based on the length of the username
     const response = await fetch("/applicant/register/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({...register, password: encryptedPassword }),
+      body: JSON.stringify({ ...register, password: encryptedPassword }),
     });
 
     if (response.ok) {
@@ -159,19 +152,6 @@ const Register = () => {
           Please confirm your password.
         </div>
       </div>
-      {passwordError && (
-        <div className="mb-3 form-check">
-          <input
-            type="checkbox"
-            className="form-check-input"
-            id="ignoreWarnings"
-            onChange={bypasssecurepassword}
-          />
-          <label className="form-check-label" htmlFor="ignoreWarnings">
-            I have read the warnings and choose to ignore them.
-          </label>
-        </div>
-      )}
       <button type="submit" className="btn btn-primary" disabled={isSubmitDisabled}>
         Register
       </button>

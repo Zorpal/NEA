@@ -169,7 +169,7 @@ const ApplicantProfile = () => {
                             className="btn btn-success"
                             onClick={() => acceptJob(details.recommended_job_title, details.email)}
                           >
-                            Accept Job
+                            Inquire more about this job
                           </button>
                         </div>
                       </div>
