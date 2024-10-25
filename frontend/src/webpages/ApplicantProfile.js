@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Authorisedroute from "../components/Authorisedroute";
 import api from "../api";
 
+//function to display the profile of an applicant
 const ApplicantProfile = () => {
   const [applicantDetails, setApplicantDetails] = useState([]);
 
@@ -9,6 +10,7 @@ const ApplicantProfile = () => {
     getApplicantDetails();
   }, []);
 
+  //function to delete the details stored in the database, removes them from TRL_applicantdetails and TRL_applicantskills
   const deleteApplicantDetails = (id) => {
     api
       .delete(`/applicant/details/delete/${id}/`).then((res) => {
@@ -21,6 +23,7 @@ const ApplicantProfile = () => {
     });
   };
 
+  //function to get the details of the applicant from the database
   const getApplicantDetails = async () => {
     api
       .get("/applicant/details/")
@@ -32,6 +35,7 @@ const ApplicantProfile = () => {
       .catch((err) => alert(err));
   };
 
+  //function to accept the job, updates the recruitment tracker to 4
   const acceptJob = (jobTitle, email) => {
     console.log(email, jobTitle);
     api
@@ -46,6 +50,7 @@ const ApplicantProfile = () => {
       });
   };
 
+  //function to calculate the size of the progress bar based on the recruitment tracker value (imitates what stage of the recruitment process the applicant is it)
   const calculateProgress = (trackerValue) => {
     switch (trackerValue) {
       case 1:
@@ -61,6 +66,7 @@ const ApplicantProfile = () => {
     }
   };
 
+  //function to get the text to display based on the recruitment tracker value
   const getTrackerText = (trackerValue) => {
     switch (trackerValue) {
       case 1:
@@ -68,7 +74,7 @@ const ApplicantProfile = () => {
       case 2:
         return "Your application has been reviewed by one of our members and we are in the process of searching for a job that best matches your skills.";
       case 3:
-        return "We have found you a job that matches your skills, please confirm that you are interested in this job!";
+        return "We have found you a job that matches your skills, check your email and please confirm that you are interested in this job!";
       case 4:
         return "We have successfully matched you with a job, congratulations! Please look out for an email/call from us with further details.";
       default:
@@ -101,19 +107,15 @@ const ApplicantProfile = () => {
                     <p>{details.phonenumber}</p>
                     <h6>Skills</h6>
                     <ul>
-                      <li>{details.skill_1}</li>
-                      <li>{details.skill_2}</li>
-                      <li>{details.skill_3}</li>
-                      <li>{details.skill_4}</li>
-                      <li>{details.skill_5}</li>
+                      {details.skills ? details.skills.split(',').map((skill, index) => (
+                        <li key={index}>{skill}</li>
+                      )) : <li>No skills listed</li>}
                     </ul>
                     <h6>Qualifications</h6>
                     <p>{details.qualifications}</p>
                     <h6>Preferences</h6>
                     <p>{details.preferences}</p>
-                    <h6>CV</h6>
-                    <p>{details.cv}</p>
-                    <p>{details.recruitmenttracker}</p>
+
                     <button
                       className="btn btn-danger mt-3"
                       onClick={() => deleteApplicantDetails(details.id)}

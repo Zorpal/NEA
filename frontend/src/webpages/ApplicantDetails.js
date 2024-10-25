@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Authorisedroute from "../components/Authorisedroute";
-import { ACCESS_TOKEN } from "../constants";
 import api from "../api";
 
+//function to allow applicants to fill out their details
 const ApplicantDetails = () => {
   const [fullname, setfullname] = useState("");
   const [email, setemail] = useState("");
@@ -16,15 +16,10 @@ const ApplicantDetails = () => {
   const [qualifications, setqualifications] = useState("");
   const [preferences, setpreferences] = useState("");
   const [cv, setcv] = useState(null);
-  const [token, setToken] = useState(null);
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const storedToken = localStorage.getItem(ACCESS_TOKEN);
-    setToken(storedToken);
-  }, []);
-
+  //function to send the applicant details to the backend
   const sendApplicantDetails = async (e) => {
     e.preventDefault();
     const formData = new FormData();
@@ -41,15 +36,11 @@ const ApplicantDetails = () => {
     formData.append("cv", cv);
     formData.append("recruitmenttracker", 1);
 
+    //sends the data to the backend 
     try {
-      const response = await api.post("/applicant/details/", formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.post("/applicant/details/", formData);
       if (response.status === 201) {
         alert("Details updated!");
-        console.log("Applicant progress set to 1");
         navigate("/applicant/details/");
         window.location.reload();
       } else {
@@ -328,14 +319,15 @@ const ApplicantDetails = () => {
                     onChange={(e) => setcv(e.target.files[0])}
                   />
                 </div>
-                <button
-                  type="submit"
-                  className="btn btn-primary mt-3"
-                >
-                  Submit
-                </button>
               </form>
             </div>
+            <button
+              type="submit"
+              className="btn btn-primary mt-3"
+              onClick={sendApplicantDetails}
+            >
+              Submit
+            </button>
           </div>
         </div>
       </div>

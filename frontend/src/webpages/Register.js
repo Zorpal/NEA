@@ -21,9 +21,10 @@ const Register = () => {
   const validatePassword = (password) => {
     const hasNumber = /\d/.test(password);
     const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    const hasUppercase = /[A-Z]/.test(password);
     const isValidLength = password.length >= 8;
-    if (!hasNumber || !hasSymbol || !isValidLength) {
-      setPasswordError("Password must be at least 8 characters long and contain at least 1 number and 1 symbol.");
+    if (!hasNumber || !hasSymbol || !hasUppercase || !isValidLength) {
+      setPasswordError("Password must be at least 8 characters long and contain at least 1 number, 1 symbol, and 1 uppercase letter.");
       return false;
     }
     setPasswordError("");

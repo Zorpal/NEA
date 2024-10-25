@@ -1,6 +1,6 @@
 from rest_framework.generics import *
-from .models import *
-from rest_framework.permissions import IsAuthenticated
+from .models import ApplicantDetails, JobDetails, Skill, ApplicantSkill
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.views import APIView
 from rest_framework import status
 from .utils import *
@@ -12,89 +12,95 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.contrib.auth.hashers import make_password
 
+#Created a superclass with a method to execute queries by taking in the query and parameters 
+class QueryClass(APIView):
+    def execute_query(self, query, params):
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(query, params)
+                return cursor.fetchall(), cursor.description
+        except Exception as e:
+            print(f"Database error: {e}")
+            return None, None
 
-#Adds in a new job instance
-class UpdateJob(APIView):
-    permission_classes = [IsAuthenticated]
+#class for getting and posting a job, inherits from QueryClass
+class JobView(QueryClass):
+    permission_classes = [AllowAny]
 
+#post method to insert a new job in the database
     def post(self, request):
         data = request.data
-
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute('''
-                    INSERT INTO TRL_jobdetails (jobtitle, companyname, salary, jobdescription, dateposted, location, jobtype, deadline, jobprimaryskill, jobsecondaryskill, jobsuitablefor)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ''', [
-                    data.get('jobtitle'),
-                    data.get('companyname'),
-                    data.get('salary'),
-                    data.get('jobdescription'),
-                    data.get('dateposted'),
-                    data.get('location'),
-                    data.get('jobtype'),
-                    data.get('deadline'),
-                    data.get('jobprimaryskill'),
-                    data.get('jobsecondaryskill'),
-                    data.get('jobsuitablefor')
-                ])
+        cursor = self.execute_query('''
+            INSERT INTO TRL_jobdetails (jobtitle, companyname, salary, jobdescription, dateposted, location, jobtype, deadline, jobprimaryskill, jobsecondaryskill)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', [
+            data.get('jobtitle'),
+            data.get('companyname'),
+            data.get('salary'),
+            data.get('jobdescription'),
+            data.get('dateposted'),
+            data.get('location'),
+            data.get('jobtype'),
+            data.get('deadline'),
+            data.get('jobprimaryskill'),
+            data.get('jobsecondaryskill'),
+        ])
+        if cursor:
             return Response(status=status.HTTP_201_CREATED)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-#Returns a list of all jobs 
-class JobList(APIView):
-    def get(self, request):
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute('SELECT * FROM TRL_jobdetails')
-                rows = cursor.fetchall()
-                columns = [col[0] for col in cursor.description]
-                results = [dict(zip(columns, row)) for row in rows]
-            return Response(results)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#Returns all details of a specific job based on their primary key
-class JobDetail(APIView):
-    def get_job(self, pk):
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute('SELECT * FROM TRL_jobdetails WHERE id = %s', [pk])
-                row = cursor.fetchone()
-                if row:
-                    columns = [col[0] for col in cursor.description]
-                    return dict(zip(columns, row))
-                else:
-                    return None
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    def get(self, request, pk):
-        job = self.get_job(pk)
-        if job:
-            return Response(job)
+#get method to return the result of either get_job_list or get_job_detail, depending on whether a primary key is parsed into the request
+    def get(self, request, pk=None):
+        if pk:
+            return self.get_job_detail(pk)
         else:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            return self.get_job_list()
+#get method to list all jobs in the database
+    def get_job_list(self):
+        rows, description = self.execute_query('SELECT * FROM TRL_jobdetails', [])
+        if rows is not None:
+            columns = [col[0] for col in description]
+            results = [dict(zip(columns, row)) for row in rows]
+            return Response(results)
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-#Adds in details of the applicant sent from the frontend server to the database
-class UpdateApplicantDetails(APIView):
-    
-    # Makes sure that people who have logged in and passing in jwt (tokens) can access this, and rejects anyone who isn't logged in or has passed in an expired access token
+#get method to return a specific job in the database
+    def get_job_detail(self, pk):
+        rows, description = self.execute_query('SELECT * FROM TRL_jobdetails WHERE id = %s', [pk])
+        if rows:
+            columns = [col[0] for col in description]
+            return Response(dict(zip(columns, rows[0])))
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+#class inheriting the QueryClass method, this class houses the get post and delete methods for the ApplicantDetails table
+class Applicantdetails(QueryClass):
+    #requires a user to be logged in and authenticated
     permission_classes = [IsAuthenticated]
 
+#get method to return the applicant details of the user
     def get(self, request):
         user = request.user
+#try except satement to query the database for the applicant's details 
         try:
-            with connection.cursor() as cursor:
-                cursor.execute('SELECT * FROM TRL_applicantdetails WHERE email = %s', [user.email])
-                rows = cursor.fetchall()
-                columns = [col[0] for col in cursor.description]
+            query = '''
+                SELECT TRL_applicantdetails.id, TRL_applicantdetails.fullname, TRL_applicantdetails.email, TRL_applicantdetails.phonenumber, TRL_applicantdetails.qualifications, TRL_applicantdetails.preferences, TRL_applicantdetails.cv, TRL_applicantdetails.recruitmenttracker, 
+                       GROUP_CONCAT(s.name) as skills
+                FROM TRL_applicantdetails TRL_applicantdetails
+                LEFT JOIN TRL_applicantskill ask ON TRL_applicantdetails.email = ask.applicant_email
+                LEFT JOIN TRL_skill s ON ask.skill_id = s.id
+                WHERE TRL_applicantdetails.email = %s
+                GROUP BY TRL_applicantdetails.id, TRL_applicantdetails.fullname, TRL_applicantdetails.email, TRL_applicantdetails.phonenumber, TRL_applicantdetails.qualifications, TRL_applicantdetails.preferences, TRL_applicantdetails.cv, TRL_applicantdetails.recruitmenttracker
+            '''
+            rows, description = self.execute_query(query, [user.email])
+            if rows is not None:
+                columns = [col[0] for col in description]
                 results = [dict(zip(columns, row)) for row in rows]
-            return Response(results)
+                return Response(results)
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+#post method to insert details of an applicant
     def post(self, request):
         data = request.data
         cv_file = data.get('cv')
@@ -104,142 +110,99 @@ class UpdateApplicantDetails(APIView):
         else:
             cv_file_path = None
 
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute('INSERT INTO TRL_applicantdetails (fullname, email, phonenumber, skill_1, skill_2, skill_3, skill_4, skill_5, qualifications, preferences, cv, recruitmenttracker) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)', 
-                       [data.get('fullname'),
-                        data.get('email'),
-                        data.get('phonenumber'),
-                        data.get('skill_1'),
-                        data.get('skill_2'),
-                        data.get('skill_3'),
-                        data.get('skill_4'),
-                        data.get('skill_5'),
-                        data.get('qualifications'),
-                        data.get('preferences'),
-                        cv_file_path,
-                        data.get('recruitmenttracker')])
-            return Response(status=status.HTTP_201_CREATED)
-        except Exception:
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#Updates the value of recruitmenttracker as a way to identify what stage of the recruitment process the applicant is in
-
-#Deletes the details of an applicant from TRL_applicantdetails
-class DeleteApplicantDetails(APIView):
-    
-    #(functionality of IsAuthenticated explained in UpdateApplicantDetails)
-    permission_classes = [IsAuthenticated]
-
-    def delete(self, request, pk, format=None):
-        user = request.user
-        with connection.cursor() as cursor:
-            cursor.execute('DELETE FROM TRL_applicantdetails WHERE id = %s', [pk])
-            if cursor.rowcount == 0:
-                return Response(status=status.HTTP_404_NOT_FOUND)
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-
-#Allows a user to sign in with google sso through google cloud console, where I have registered this app along with the urls of both servers to communicate with each other
-class GoogleSSO(APIView):
-    def post(self, request):
-        if 'code' in request.data.keys():
-            code = request.data['code']
-            id_token = get_google_token(code)
-            email = id_token['email']
-            user = self.login(email)
-            token = AccessToken.for_user(user)
-            return Response({'access_token': str(token), 'username': email})
-        return Response(status=status.HTTP_400_BAD_REQUEST)
-
-    def login(self, email):
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute('SELECT * FROM auth_user WHERE email = %s', [email])
-                row = cursor.fetchone()
-                if row:
-                    user_id = row[0]
-                else:
-                    cursor.execute('''
-                        INSERT INTO auth_user (username, email, password, is_superuser, is_staff, is_active, date_joined, first_name, last_name)
-                        VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s, %s)
-                        RETURNING id
-                    ''', [email, email, '', False, False, True, '', ''])
-                    user_id = cursor.fetchone()[0]
-            user = User.objects.get(pk=user_id)
-        except Exception:
-            return None
-        return user
-
-#Registers a new user to the database that takes in the parameters username, password, and email from my frontend server, and hashes the password using Django's built in hashing function based on SHA256
-class Register(APIView):
-    def post(self, request, format=None):
-        data = request.data
-        username = data.get('username')
-        password = data.get('password')
-        email = data.get('email')
-
-        hashed_password = make_password(password)
-
+#try except statement to insert the inputted data into the table, but in case some of the data is not present or in case there is the same email in the table, it will update the other values in the database
         try:
             with connection.cursor() as cursor:
                 cursor.execute('''
-                    INSERT INTO auth_user (username, password, is_superuser, is_staff, is_active, date_joined, first_name, last_name, email)
-                    VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s, %s, %s)
-                ''', [username, hashed_password, False, False, True, '', '', email])
+                    INSERT INTO TRL_applicantdetails (fullname, email, phonenumber, qualifications, preferences, cv, recruitmenttracker)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (email) DO UPDATE SET
+                    fullname = EXCLUDED.fullname,
+                    phonenumber = EXCLUDED.phonenumber,
+                    qualifications = EXCLUDED.qualifications,
+                    preferences = EXCLUDED.preferences,
+                    cv = EXCLUDED.cv,
+                    recruitmenttracker = EXCLUDED.recruitmenttracker
+                    RETURNING id
+                ''', [
+                    data.get('fullname'),
+                    data.get('email'),
+                    data.get('phonenumber'),
+                    data.get('qualifications'),
+                    data.get('preferences'),
+                    cv_file_path,
+                    data.get('recruitmenttracker')
+                ])
+                applicant_id = cursor.fetchone()[0]
+            #makes sure that there is no previous email that is the same as the one inputted
+            self.execute_query('DELETE FROM TRL_applicantskill WHERE applicant_email = %s', [data.get('email')])
+            #creates a list of the skills inputted by the user
+            skills = [data.get('skill_1'), data.get('skill_2'), data.get('skill_3'), data.get('skill_4'), data.get('skill_5')]
+            for skill_name in skills:
+                if skill_name:
+                    skill_id = self.getskill(skill_name)
+                    self.execute_query('INSERT INTO TRL_applicantskill (applicant_email, skill_id) VALUES (%s, %s)', [data.get('email'), skill_id])
+
             return Response(status=status.HTTP_201_CREATED)
-        except Exception:
+        except Exception as e:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-#Returns the username and is_staff attributes of the current user
-class RetrieveStaffStatus(APIView):
-    def get(self, request):
-        user = request.user
-        return Response({
-            'username': user.username,
-            'is_staff': user.is_staff,
-        })
+#get method to return the id of skills 
+    def getskill(self, skill_name):
+        skill_id = None
+        rows, _ = self.execute_query('SELECT id FROM TRL_skill WHERE name = %s', [skill_name])
+        if rows:
+            skill_id = rows[0][0]
+        else:
+            rows, _ = self.execute_query('INSERT INTO TRL_skill (name) VALUES (%s) RETURNING id', [skill_name])
+            skill_id = rows[0][0]
+        return skill_id
 
-
-#Retrieves all applicants from the database, is used by employees (users with the is_staff field set to True)
-class ListApplicants(APIView):
-    
-    #(functionality of IsAuthenticated explained in UpdateApplicantDetails)
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
+#delete method to remove all details of an applicant from applicantskill and applicantdetails
+    def delete(self, request, pk):
         try:
             with connection.cursor() as cursor:
-                cursor.execute('SELECT * FROM TRL_applicantdetails')
-                rows = cursor.fetchall()
-                columns = [col[0] for col in cursor.description]
-                listofapplicants = [dict(zip(columns, row)) for row in rows]                 
-            return Response(listofapplicants)
+                cursor.execute('SELECT email FROM TRL_applicantdetails WHERE id = %s', [pk])
+                row = cursor.fetchone()
+                if not row:
+                    return Response(status=status.HTTP_404_NOT_FOUND)
+                applicant_email = row[0]
+                cursor.execute('DELETE FROM TRL_applicantskill WHERE applicant_email = %s', [applicant_email])
+                cursor.execute('DELETE FROM TRL_applicantdetails WHERE id = %s', [pk])
+                if cursor.rowcount == 0:
+                    return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-#Retrieves emails of applicants whose skills match job primary or secondary skills
-class RetrieveApplicantSkills(APIView):
+
+#class to return the list of applicant skills
+class RetrieveApplicantSkills(QueryClass):
+    #post method to take in the sought skills of the specific job and return the emails of applicants who have one of those skills in their details
     def post(self, request):
         skill = request.data.get('skill')
         if not skill:
             return Response(status=status.HTTP_400_BAD_REQUEST)
         try:
-            with connection.cursor() as cursor:
-                cursor.execute('''
-                    SELECT DISTINCT a.email
-                    FROM TRL_applicantdetails a
-                    WHERE %s IN (a.skill_1, a.skill_2, a.skill_3, a.skill_4, a.skill_5)
-                ''', [skill])
-                rows = cursor.fetchall()
+            query = '''
+                SELECT DISTINCT TRL_applicantdetails.email
+                FROM TRL_applicantdetails TRL_applicantdetails
+                JOIN TRL_applicantskill ON TRL_applicantdetails.email = TRL_applicantskill.applicant_email
+                JOIN TRL_skill ON TRL_applicantskill.skill_id = TRL_skill.id
+                WHERE TRL_skill.name = %s
+            '''
+            rows, description = self.execute_query(query, [skill])
+            if rows is not None:
                 emails = [row[0] for row in rows]
-            return Response({'emails': emails})
+                return Response({'emails': emails})
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
 
-class UpdateRecruitmentTracker(APIView):
+#class to update the recruitment tracker value, imitates a dynamic tracker for the applicant
+class UpdateRecruitmentTracker(QueryClass):
+    #requires employee permissions/head admin permissions rather than just anyone who is logged in
+    permission_classes = [IsAdminUser]
+    #post method to update the recruitment tracker value
     def post(self, request):
         email = request.data.get('email')
         tracker_value = request.data.get('recruitmenttracker')
@@ -251,7 +214,6 @@ class UpdateRecruitmentTracker(APIView):
 
             if tracker_value == 3 and job_id:
                 job = JobDetails.objects.get(id=job_id)
-                job.jobsuitablefor.add(applicant)
                 job.save()
 
             if tracker_value == 4:
@@ -259,8 +221,90 @@ class UpdateRecruitmentTracker(APIView):
                 applicant.accepted_job_title = job_title
 
             applicant.save()
-            return Response({'status': 'success'}, status=200)
+            return Response(status=status.HTTP_200_OK)
         except ApplicantDetails.DoesNotExist:
-            return Response({'error': 'Applicant not found'}, status=404)
+            return Response(status=status.HTTP_404_NOT_FOUND)
         except JobDetails.DoesNotExist:
-            return Response({'error': 'Job not found'}, status=404)
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+#class inheriting from QueryClass which allows users to sign in with google
+#To do this i have created a web application on google cloud console that allows google users to interface with my frontend and backend server, hence why i have a client secret json file to access this
+class GoogleSSO(QueryClass):
+    permission_classes = [AllowAny]
+    def post(self, request):
+        if 'code' in request.data.keys():
+            code = request.data['code']
+            id_token = get_google_token(code)
+            email = id_token['email']
+            user = self.login(email)
+            token = AccessToken.for_user(user)
+            return Response({'access_token': str(token), 'username': email})
+        return Response(status=status.HTTP_400_BTRL_applicantdetails_REQUEST)
+
+#login method to check if the user is in the database, if not it will insert the user into the database
+    def login(self, email):
+        rows, description = self.execute_query('SELECT * FROM auth_user WHERE email = %s', [email])
+        if rows:
+            user_id = rows[0][0]
+        else:
+            rows, description = self.execute_query('''
+                INSERT INTO auth_user (username, email, password, is_superuser, is_staff, is_active, date_joined, first_name, last_name)
+                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s, %s)
+                RETURNING id
+            ''', [email, email, '', False, False, True, '', ''])
+            user_id = rows[0][0]
+        return User.objects.get(pk=user_id)
+
+#register class to allow applicants to register with a username, password and email. By default, the is_staff attribute is set to false so they do not have employee access rights
+#however any employee, admin or applicant can sign in using the same login system. Django's built in admin website can adjust the level of access rights for each user 
+class Register(QueryClass):
+    #allows anyone to register
+    permission_classes = [AllowAny]
+    #post method to insert a new user into the database
+    def post(self, request, format=None):
+        data = request.data
+        username = data.get('username')
+        password = data.get('password')
+        email = data.get('email')
+        hashed_password = make_password(password)
+        cursor = self.execute_query('''
+            INSERT INTO auth_user (username, password, is_superuser, is_staff, is_active, date_joined, first_name, last_name, email)
+            VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s, %s, %s)
+        ''', [username, hashed_password, False, False, True, '', '', email])
+        if cursor:
+            return Response(status=status.HTTP_201_CREATED)
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class RetrieveStaffStatus(QueryClass):
+    #get method to return the is_staff attribute of the logged in user
+    def get(self, request):
+        user = request.user
+        return Response({
+            'username': user.username,
+            'is_staff': user.is_staff,
+        })
+
+#class to return a list of all applicants and their details in the database
+class ListApplicants(QueryClass):
+    #ensures the logged in user is an employee
+    permission_classes=[IsAdminUser]
+    #get method to return all details of all applicants, also retrieves the skills of each applicant by concatenating them into a single string
+    def get(self, request):
+        try:
+            query = '''
+            SELECT TRL_applicantdetails.id, TRL_applicantdetails.fullname, TRL_applicantdetails.email, TRL_applicantdetails.phonenumber, TRL_applicantdetails.qualifications, TRL_applicantdetails.preferences, TRL_applicantdetails.cv, TRL_applicantdetails.recruitmenttracker, 
+            GROUP_CONCAT(TRL_skill.name) as skills FROM TRL_applicantdetails 
+            LEFT JOIN TRL_applicantskill ON TRL_applicantdetails.email = TRL_applicantskill.applicant_email 
+            LEFT JOIN TRL_skill ON TRL_applicantskill.skill_id = TRL_skill.id 
+            GROUP BY TRL_applicantdetails.id, TRL_applicantdetails.fullname, TRL_applicantdetails.email, TRL_applicantdetails.phonenumber, TRL_applicantdetails.qualifications, TRL_applicantdetails.preferences, TRL_applicantdetails.cv, TRL_applicantdetails.recruitmenttracker
+            '''
+            rows, description = self.execute_query(query, [])
+            if rows is not None:
+                columns = [col[0] for col in description]
+                results = [dict(zip(columns, row)) for row in rows]
+                return Response(results)
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

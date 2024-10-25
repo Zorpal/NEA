@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
 
+//function to render the details of a specific job and return a list of applicants with the same primary and secondary skills (those are only visible to employees though)
 const JobDetails = () => {
   const { jobId } = useParams();
   const [job, setJob] = useState({});
@@ -10,6 +11,7 @@ const JobDetails = () => {
   const [secondaryApplicantEmails, setSecondaryApplicantEmails] = useState([]);
 
   useEffect(() => {
+    //function to get the staff status of the user
     const retrievestaffstatus = async () => {
       try {
         const response = await api.get("/applicant/retrieve-staff-status");
@@ -23,6 +25,7 @@ const JobDetails = () => {
     retrievestaffstatus();
   }, []);
 
+  //function to get the details of a specific job
   const getJob = useCallback(async () => {
     try {
       const response = await api.get(`/Jobs/List/${jobId}`);
@@ -50,15 +53,17 @@ const JobDetails = () => {
     }
   }, [job.jobsecondaryskill]);
 
+  //function to update the recruitment tracker of the applicant, parsing in the email, jobId and the recruitment tracker status
   const updateRecruitmentTracker = async (email) => {
     api
-      .post("/applicant/applicant/updatert/", { email, recruitmenttracker: 3, job_id: jobId })
+      .post("/applicant/updatert/", { email, recruitmenttracker: 3, job_id: jobId })
       .then((res) => {
         alert("Recruitment tracker updated successfully");
       })
       .catch((err) => alert(err));
   };
 
+  //functions to return emails of applicants based on their primary and secondary skills
   const primaryskilltofilterapplicants = (primarySkill) => {
     api
       .post("/applicant/skills/", { skill: primarySkill })

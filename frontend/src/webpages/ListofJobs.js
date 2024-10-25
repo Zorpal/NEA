@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import api from "../api";
 
 
 // Functional component "ListofJobs" to be called upon in my website by exporting it.

@@ -5,11 +5,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path("List/", JobList.as_view(), name="Jobs"),
-    path("List/<int:pk>/", JobDetail.as_view(), name="Job"),
-    path("Update/", UpdateJob.as_view(), name="UpdateJob"),
-    path("details/", UpdateApplicantDetails.as_view(), name="ApplicantDetails"),
-    path("details/delete/<int:pk>/", DeleteApplicantDetails.as_view(), name="DeleteApplicantDetails"),
+    path("List/", JobView.as_view(), name="Jobs"),
+    path("List/<int:pk>/", JobView.as_view(), name="Job"),
+    path("Update/", JobView.as_view(), name="UpdateJob"),
+    path("details/", Applicantdetails.as_view(), name="ApplicantDetails"),
+    path("details/delete/<int:pk>/", Applicantdetails.as_view(), name="DeleteApplicantDetails"),
     path('g-sso/', GoogleSSO.as_view(), name='g-sso'),
     path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -19,5 +19,4 @@ urlpatterns = [
     path('applicant/list/', ListApplicants.as_view(), name='ApplicantList'),
     path('updatert/', UpdateRecruitmentTracker.as_view(), name='UpdateRecruitmentTracker'),
     path('skills/', RetrieveApplicantSkills.as_view(), name='Skills'),
-    
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
