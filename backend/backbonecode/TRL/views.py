@@ -11,6 +11,8 @@ from django.db import connection
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.contrib.auth.hashers import make_password
+from django.http import HttpResponse
+import os
 
 #Created a superclass with a method to execute queries by taking in the query and parameters 
 class QueryClass(APIView):
@@ -305,3 +307,19 @@ class ListApplicants(QueryClass):
         except Exception:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+
+
+class DownloadCV(QueryClass):
+    def get(self, request, id):
+        try:
+            applicant = ApplicantDetails.objects.get(id=id)
+            file_path = applicant.cv.path
+            if os.path.exists(file_path):
+                with open(file_path, 'rb') as fh:
+                    response = HttpResponse(fh.read(), content_type="application/octet-stream")
+                    response['Content-Disposition'] = 'inline; filename=' + os.path.basename(file_path)
+                    return response
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        except ApplicantDetails.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
