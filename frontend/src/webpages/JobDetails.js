@@ -1,17 +1,15 @@
+// JobDetails.js
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
 
-//function to render the details of a specific job and return a list of applicants with the same primary and secondary skills (those are only visible to employees though)
 const JobDetails = () => {
   const { jobId } = useParams();
   const [job, setJob] = useState({});
   const [isStaff, setIsStaff] = useState(false);
-  const [applicantEmails, setApplicantEmails] = useState([]);
-  const [secondaryApplicantEmails, setSecondaryApplicantEmails] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
 
   useEffect(() => {
-    //function to get the staff status of the user
     const retrievestaffstatus = async () => {
       try {
         const response = await api.get("/applicant/retrieve-staff-status");
@@ -25,7 +23,16 @@ const JobDetails = () => {
     retrievestaffstatus();
   }, []);
 
-  //function to get the details of a specific job
+    //function to update the recruitment tracker of the applicant, parsing in the email, jobId and the recruitment tracker status
+    const updateRecruitmentTracker = async (email) => {
+      api
+        .post("/applicant/updatert/", { email, recruitmenttracker: 3, job_id: jobId })
+        .then((res) => {
+          alert("Recruitment tracker updated successfully");
+        })
+        .catch((err) => alert(err));
+    };
+
   const getJob = useCallback(async () => {
     try {
       const response = await api.get(`/Jobs/List/${jobId}`);
@@ -35,58 +42,21 @@ const JobDetails = () => {
     }
   }, [jobId]);
 
+  const getRecommendations = useCallback(async () => {
+    try {
+      const response = await api.get(`/Jobs/jobs/${jobId}/recommendations/`);
+      setRecommendations(response.data.recommendations);
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
+    }
+  }, [jobId]);
+
   useEffect(() => {
     if (jobId) {
       getJob();
+      getRecommendations();
     }
-  }, [jobId, getJob]);
-
-  useEffect(() => {
-    if (job.jobprimaryskill) {
-      primaryskilltofilterapplicants(job.jobprimaryskill);
-    }
-  }, [job.jobprimaryskill]);
-
-  useEffect(() => {
-    if (job.jobsecondaryskill) {
-      secondaryskilltofilterapplicants(job.jobsecondaryskill);
-    }
-  }, [job.jobsecondaryskill]);
-
-  //function to update the recruitment tracker of the applicant, parsing in the email, jobId and the recruitment tracker status
-  const updateRecruitmentTracker = async (email) => {
-    api
-      .post("/applicant/updatert/", { email, recruitmenttracker: 3, job_id: jobId })
-      .then((res) => {
-        alert("Recruitment tracker updated successfully");
-      })
-      .catch((err) => alert(err));
-  };
-
-  //functions to return emails of applicants based on their primary and secondary skills
-  const primaryskilltofilterapplicants = (primarySkill) => {
-    api
-      .post("/applicant/skills/", { skill: primarySkill })
-      .then((response) => {
-        setApplicantEmails(response.data.emails);
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        alert("Failed to fetch applicant emails. Please try again.");
-      });
-  };
-
-  const secondaryskilltofilterapplicants = (secondarySkill) => {
-    api
-      .post("/applicant/skills/", { skill: secondarySkill })
-      .then((response) => {
-        setSecondaryApplicantEmails(response.data.emails);
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        alert("Failed to fetch applicant emails. Please try again.");
-      });
-  };
+  }, [jobId, getJob, getRecommendations]);
 
   return (
     <div className="container">
@@ -115,34 +85,11 @@ const JobDetails = () => {
           <div className="col-md-6">
             <div className="card">
               <div className="card-header">
-                Applicants with {job.jobprimaryskill} skill:
+                Recommended Applicants:
               </div>
               <div className="card-body">
                 <ul className="list-group">
-                  {applicantEmails.map((email) => (
-                    <li
-                      key={email}
-                      className="list-group-item d-flex justify-content-between align-items-center"
-                    >
-                      {email}
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => updateRecruitmentTracker(email)}
-                      >
-                        Recommend this to applicant?
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            <div className="card mt-3">
-              <div className="card-header">
-                Applicants with {job.jobsecondaryskill} skill:
-              </div>
-              <div className="card-body">
-                <ul className="list-group">
-                  {secondaryApplicantEmails.map((email) => (
+                  {recommendations.map((email) => (
                     <li
                       key={email}
                       className="list-group-item d-flex justify-content-between align-items-center"
@@ -167,3 +114,4 @@ const JobDetails = () => {
 };
 
 export default JobDetails;
+

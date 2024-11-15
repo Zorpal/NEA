@@ -12,18 +12,33 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.contrib.auth.hashers import make_password
 from django.http import HttpResponse
+from .filterapplicants import filterapplicant
 import os
+
+class RecommendApplicanttoJob(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, job_id):
+        recommendations = filterapplicant(job_id)
+        return Response({'recommendations': recommendations})
 
 #Created a superclass with a method to execute queries by taking in the query and parameters 
 class QueryClass(APIView):
-    def execute_query(self, query, params):
+    def __init__(self):
+        self.__connection = connection
+
+#Privated method to execute an SQL query to help prevent against direct access to the execute query method
+    def __executequery(self, query, params):
         try:
-            with connection.cursor() as cursor:
+            with self.__connection.cursor() as cursor:
                 cursor.execute(query, params)
                 return cursor.fetchall(), cursor.description
-        except Exception as e:
-            print(f"Database error: {e}")
+        except Exception as error:
+            print(f"Database error: {error}")
             return None, None
+
+    def query(self, query, params):
+        return self.__executequery(query, params)
 
 #class for getting and posting a job, inherits from QueryClass
 class JobView(QueryClass):
@@ -32,7 +47,7 @@ class JobView(QueryClass):
 #post method to insert a new job in the database
     def post(self, request):
         data = request.data
-        cursor = self.execute_query('''
+        cursor = self.query('''
             INSERT INTO TRL_jobdetails (jobtitle, companyname, salary, jobdescription, dateposted, location, jobtype, deadline, jobprimaryskill, jobsecondaryskill)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', [
@@ -59,7 +74,7 @@ class JobView(QueryClass):
             return self.get_job_list()
 #get method to list all jobs in the database
     def get_job_list(self):
-        rows, description = self.execute_query('SELECT * FROM TRL_jobdetails', [])
+        rows, description = self.query('SELECT * FROM TRL_jobdetails', [])
         if rows is not None:
             columns = [col[0] for col in description]
             results = [dict(zip(columns, row)) for row in rows]
@@ -68,7 +83,7 @@ class JobView(QueryClass):
 
 #get method to return a specific job in the database
     def get_job_detail(self, pk):
-        rows, description = self.execute_query('SELECT * FROM TRL_jobdetails WHERE id = %s', [pk])
+        rows, description = self.query('SELECT * FROM TRL_jobdetails WHERE id = %s', [pk])
         if rows:
             columns = [col[0] for col in description]
             return Response(dict(zip(columns, rows[0])))
@@ -92,7 +107,7 @@ class Applicantdetails(QueryClass):
                 WHERE TRL_applicantdetails.email = %s
                 GROUP BY TRL_applicantdetails.id
                 '''
-            rows, description = self.execute_query(query, [user.email])
+            rows, description = self.query(query, [user.email])
             if rows is not None:
                 columns = [col[0] for col in description]
                 results = [dict(zip(columns, row)) for row in rows]
@@ -135,13 +150,13 @@ class Applicantdetails(QueryClass):
                     data.get('recruitmenttracker')
                 ])
             #makes sure that there is no previous email that is the same as the one inputted
-            self.execute_query('DELETE FROM TRL_applicantskill WHERE applicant_email = %s', [data.get('email')])
+            self.query('DELETE FROM TRL_applicantskill WHERE applicant_email = %s', [data.get('email')])
             #creates a list of the skills inputted by the user
             skills = [data.get('skill_1'), data.get('skill_2'), data.get('skill_3'), data.get('skill_4'), data.get('skill_5')]
             for skill_name in skills:
                 if skill_name:
                     skill_id = self.getskill(skill_name)
-                    self.execute_query('INSERT INTO TRL_applicantskill (applicant_email, skill_id) VALUES (%s, %s)', [data.get('email'), skill_id])
+                    self.query('INSERT INTO TRL_applicantskill (applicant_email, skill_id) VALUES (%s, %s)', [data.get('email'), skill_id])
 
             return Response(status=status.HTTP_201_CREATED)
         except Exception as e:
@@ -150,11 +165,11 @@ class Applicantdetails(QueryClass):
 #get method to return the id of skills 
     def getskill(self, skill_name):
         skill_id = None
-        rows, _ = self.execute_query('SELECT id FROM TRL_skill WHERE name = %s', [skill_name])
+        rows, _ = self.query('SELECT id FROM TRL_skill WHERE name = %s', [skill_name])
         if rows:
             skill_id = rows[0][0]
         else:
-            rows, _ = self.execute_query('INSERT INTO TRL_skill (name) VALUES (%s) RETURNING id', [skill_name])
+            rows, _ = self.query('INSERT INTO TRL_skill (name) VALUES (%s) RETURNING id', [skill_name])
             skill_id = rows[0][0]
         return skill_id
 
@@ -190,7 +205,7 @@ class RetrieveApplicantSkills(QueryClass):
                 JOIN TRL_skill ON TRL_applicantskill.skill_id = TRL_skill.id
                 WHERE TRL_skill.name = %s
             '''
-            rows, description = self.execute_query(query, [skill])
+            rows, description = self.query(query, [skill])
             if rows is not None:
                 emails = [row[0] for row in rows]
                 return Response({'emails': emails})
@@ -243,11 +258,11 @@ class GoogleSSO(QueryClass):
 
 #login method to check if the user is in the database, if not it will insert the user into the database
     def login(self, email):
-        rows, description = self.execute_query('SELECT * FROM auth_user WHERE email = %s', [email])
+        rows, description = self.query('SELECT * FROM auth_user WHERE email = %s', [email])
         if rows:
             user_id = rows[0][0]
         else:
-            rows, description = self.execute_query('''
+            rows, description = self.query('''
                 INSERT INTO auth_user (username, email, password, is_superuser, is_staff, is_active, date_joined, first_name, last_name)
                 VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s, %s)
                 RETURNING id
@@ -263,11 +278,11 @@ class Register(QueryClass):
     #post method to insert a new user into the database
     def post(self, request, format=None):
         data = request.data
-        username = data.get('username')
+        username = data.get('username') 
         password = data.get('password')
         email = data.get('email')
         hashed_password = make_password(password)
-        cursor = self.execute_query('''
+        cursor = self.query('''
             INSERT INTO auth_user (username, password, is_superuser, is_staff, is_active, date_joined, first_name, last_name, email)
             VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s, %s, %s)
         ''', [username, hashed_password, False, False, True, '', '', email])
@@ -298,7 +313,7 @@ class ListApplicants(QueryClass):
             LEFT JOIN TRL_skill ON TRL_applicantskill.skill_id = TRL_skill.id 
             GROUP BY TRL_applicantdetails.id, TRL_applicantdetails.fullname, TRL_applicantdetails.email, TRL_applicantdetails.phonenumber, TRL_applicantdetails.qualifications, TRL_applicantdetails.preferences, TRL_applicantdetails.cv, TRL_applicantdetails.recruitmenttracker
             '''
-            rows, description = self.execute_query(query, [])
+            rows, description = self.query(query, [])
             if rows is not None:
                 columns = [col[0] for col in description]
                 results = [dict(zip(columns, row)) for row in rows]
@@ -308,16 +323,14 @@ class ListApplicants(QueryClass):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-
-
 class DownloadCV(QueryClass):
     def get(self, request, id):
         try:
             applicant = ApplicantDetails.objects.get(id=id)
             file_path = applicant.cv.path
             if os.path.exists(file_path):
-                with open(file_path, 'rb') as fh:
-                    response = HttpResponse(fh.read(), content_type="application/octet-stream")
+                with open(file_path, 'rb') as cv:
+                    response = HttpResponse(cv.read(), content_type="application/octet-stream")
                     response['Content-Disposition'] = 'inline; filename=' + os.path.basename(file_path)
                     return response
             return Response(status=status.HTTP_404_NOT_FOUND)

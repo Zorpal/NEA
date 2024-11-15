@@ -80,3 +80,4 @@ class JobDetails(models.Model):
 
     def __str__(self):
         return self.jobtitle
+

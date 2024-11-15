@@ -10,6 +10,7 @@ const Login = () => {
   const completelogin = async () => {
     const usernameLength = userlogin.username.length;
     const encryptedPassword = encryptpassword(userlogin.password, usernameLength); //this password is shifted using a caesar shift that shifts based on the length of the username
+    console.log(encryptedPassword)
     const response = await fetch("/applicant/token/", {
       method: "POST",
       headers: {

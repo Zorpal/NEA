@@ -20,4 +20,5 @@ urlpatterns = [
     path('updatert/', UpdateRecruitmentTracker.as_view(), name='UpdateRecruitmentTracker'),
     path('skills/', RetrieveApplicantSkills.as_view(), name='Skills'),
     path('applicant/<int:id>/cv/', DownloadCV.as_view(), name='DownloadCV'),
+    path('jobs/<int:job_id>/recommendations/', RecommendApplicanttoJob.as_view(), name='job-recommendations'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
