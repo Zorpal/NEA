@@ -23,10 +23,10 @@ def getapplicantemail():
 def getapplicantskills():
     with connection.cursor() as cursor:
         cursor.execute("""
-            SELECT ad.email, s.name 
-            FROM TRL_ApplicantDetails ad
-            JOIN TRL_ApplicantSkill aps ON ad.email = aps.applicant_email
-            JOIN TRL_Skill s ON aps.skill_id = s.id
+            SELECT TRL_ApplicantDetails.email, TRL_Skill.name 
+            FROM TRL_ApplicantDetails 
+            JOIN TRL_ApplicantSkill ON TRL_ApplicantDetails.email = TRL_ApplicantSkill.applicant_email
+            JOIN TRL_Skill ON TRL_ApplicantSKill.skill_id = TRL_Skill.id
         """)
         rows = cursor.fetchall()
     applicant_skills = {}
@@ -62,7 +62,13 @@ def filterapplicant(job_id):
 
     similarity_scores = [cosine_similarity(skill_vector, job_vector) for skill_vector in skill_matrix]
 
-    top_indices = sorted(range(len(similarity_scores)), key=lambda i: similarity_scores[i], reverse=True)[:5]
-    recommended_applicants = [filtered_applicants[i] for i in top_indices]
+    stack = []
+    for i, score in enumerate(similarity_scores):
+        matching_skills = sum(1 for skill in job_skills if skill in applicant_skills.get(filtered_applicants[i], []))
+        if matching_skills == 2:
+            stack.append(filtered_applicants[i])
+        else:
+            stack.insert(0, filtered_applicants[i])
 
+    recommended_applicants = stack[::-1]
     return recommended_applicants

@@ -15,6 +15,7 @@ from django.http import HttpResponse
 from .filterapplicants import filterapplicant
 import os
 
+#class to filter applicants based on their skills that match to a job (uses code in filterapplicants.py)
 class RecommendApplicanttoJob(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -322,7 +323,7 @@ class ListApplicants(QueryClass):
         except Exception:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
+#class to download an applicant's cv stored on the server
 class DownloadCV(QueryClass):
     def get(self, request, id):
         try:
