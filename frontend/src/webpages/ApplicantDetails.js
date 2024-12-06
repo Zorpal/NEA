@@ -16,6 +16,7 @@ const ApplicantDetails = () => {
   const [qualifications, setqualifications] = useState("");
   const [preferences, setpreferences] = useState("");
   const [cv, setcv] = useState(null);
+  const [cvError, setCvError] = useState("");
 
   const navigate = useNavigate();
 
@@ -38,14 +39,22 @@ const ApplicantDetails = () => {
 
     //sends the data to the backend 
     try {
-      const response = await api.post("/applicant/details/", formData);
-      if (response.status === 201) {
-        alert("Details updated!");
-        navigate("/applicant/details/");
-        window.location.reload();
+      //gets the server time
+      const timeResponse = await api.get("/applicant/servertime");
+      if (timeResponse.status === 200) {
+        const serverTime = timeResponse.data.server_time;
+        formData.append("timestamp", serverTime);
+  
+        const response = await api.post("/applicant/details/", formData);
+        if (response.status === 201) {
+          alert("Details updated!");
+          navigate("/applicant/details/");
+          window.location.reload();
+        } else {
+          alert("Failed to update details!", response.data);
+        }
       } else {
-        alert("Failed to update details!", response.data);
-        console.error("Error updating applicant details:", response.data.error);
+        alert("There was an error communicating with the backend server, please try again later!");
       }
     } catch (error) {
       console.error("Error updating applicant details:", error);
@@ -71,6 +80,18 @@ const ApplicantDetails = () => {
     });
   })();
   // end of code taken from bootstrap docs
+
+  const handleCvChange = (e) => {
+    const file = e.target.files[0];
+    const allowedExtensions = /(\.pdf|\.docx|\.doc)$/i;
+    if (!allowedExtensions.exec(file.name)) {
+      setCvError("Please upload a file in .pdf, .doc or .docx format.");
+      setcv(null);
+    } else {
+      setCvError("");
+      setcv(file);
+    }
+  };
 
   return (
     <Authorisedroute>
@@ -310,14 +331,16 @@ const ApplicantDetails = () => {
                   <div className="invalid-feedback">Please select a preference!</div>
                 </div>
                 <div className="form-group">
-                  <label htmlFor="cv">Upload a CV</label>
+                  <label htmlFor="cv">Upload a CV (Accepted formats: .pdf, .docx)</label>
                   <br />
                   <input
                     type="file"
                     id="cv"
                     name="cv"
-                    onChange={(e) => setcv(e.target.files[0])}
+                    onChange={handleCvChange}
+                    required
                   />
+                  {cvError && <div className="text-danger">{cvError}</div>}
                 </div>
               </form>
             </div>

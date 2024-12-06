@@ -1,5 +1,5 @@
 from rest_framework.generics import *
-from .models import ApplicantDetails, JobDetails, Skill, ApplicantSkill
+from .models import *
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.views import APIView
 from rest_framework import status
@@ -14,13 +14,17 @@ from django.contrib.auth.hashers import make_password
 from django.http import HttpResponse
 from .filterapplicants import filterapplicant
 import os
-
+from datetime import datetime
+#class to filter applicants based on their skills that match to a job (uses code in filterapplicants.py)
 class RecommendApplicanttoJob(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, job_id):
-        recommendations = filterapplicant(job_id)
-        return Response({'recommendations': recommendations})
+        recommendations_both_skills, recommendations_one_skill = filterapplicant(job_id)
+        return Response({
+            'recommendations_both_skills': recommendations_both_skills,
+            'recommendations_one_skill': recommendations_one_skill
+        })
 
 #Created a superclass with a method to execute queries by taking in the query and parameters 
 class QueryClass(APIView):
@@ -40,6 +44,13 @@ class QueryClass(APIView):
     def query(self, query, params):
         return self.__executequery(query, params)
 
+class ServerTime(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        server_time = datetime.now()
+        return Response({'server_time': server_time.strftime('%Y-%m-%d %H:%M:%S')})
+    
 #class for getting and posting a job, inherits from QueryClass
 class JobView(QueryClass):
     permission_classes = [AllowAny]
@@ -115,7 +126,7 @@ class Applicantdetails(QueryClass):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+        
 #post method to insert details of an applicant
     def post(self, request):
         data = request.data
@@ -130,8 +141,8 @@ class Applicantdetails(QueryClass):
         try:
             with connection.cursor() as cursor:
                 cursor.execute('''
-                    INSERT INTO TRL_applicantdetails (fullname, email, phonenumber, qualifications, preferences, cv, recruitmenttracker)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO TRL_applicantdetails (fullname, email, phonenumber, qualifications, preferences, cv, recruitmenttracker, timestamp)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (email) DO UPDATE SET
                     fullname = EXCLUDED.fullname,
                     phonenumber = EXCLUDED.phonenumber,
@@ -147,7 +158,8 @@ class Applicantdetails(QueryClass):
                     data.get('qualifications'),
                     data.get('preferences'),
                     cv_file_path,
-                    data.get('recruitmenttracker')
+                    data.get('recruitmenttracker'),
+                    data.get('timestamp'),
                 ])
             #makes sure that there is no previous email that is the same as the one inputted
             self.query('DELETE FROM TRL_applicantskill WHERE applicant_email = %s', [data.get('email')])
@@ -189,7 +201,29 @@ class Applicantdetails(QueryClass):
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+class FilteredApplicantDetails(QueryClass):
+    permission_classes = [IsAuthenticated]
 
+    def get(self, request, email):
+        try:
+            query = '''
+                SELECT TRL_applicantdetails.*, 
+                GROUP_CONCAT(TRL_skill.name) as skills
+                FROM TRL_applicantdetails TRL_applicantdetails
+                LEFT JOIN TRL_applicantskill ON TRL_applicantdetails.email = TRL_applicantskill.applicant_email
+                LEFT JOIN TRL_skill ON TRL_applicantskill.skill_id = TRL_skill.id
+                WHERE TRL_applicantdetails.email = %s
+                GROUP BY TRL_applicantdetails.id
+                '''
+            rows, description = self.query(query, [email])
+            if rows is not None:
+                columns = [col[0] for col in description]
+                results = [dict(zip(columns, row)) for row in rows]
+                return Response(results)
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 #class to return the list of applicant skills
 class RetrieveApplicantSkills(QueryClass):
     #post method to take in the sought skills of the specific job and return the emails of applicants who have one of those skills in their details
@@ -322,7 +356,7 @@ class ListApplicants(QueryClass):
         except Exception:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
+#class to download an applicant's cv stored on the server
 class DownloadCV(QueryClass):
     def get(self, request, id):
         try:

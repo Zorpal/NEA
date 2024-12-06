@@ -16,17 +16,17 @@ def getjob(job_id):
 
 def getapplicantemail():
     with connection.cursor() as cursor:
-        cursor.execute("SELECT email FROM TRL_ApplicantDetails")
+        cursor.execute("SELECT email, timestamp FROM TRL_ApplicantDetails")
         rows = cursor.fetchall()
-    return [row[0] for row in rows]
+    return [(row[0], row[1]) for row in rows]
 
 def getapplicantskills():
     with connection.cursor() as cursor:
         cursor.execute("""
-            SELECT ad.email, s.name 
-            FROM TRL_ApplicantDetails ad
-            JOIN TRL_ApplicantSkill aps ON ad.email = aps.applicant_email
-            JOIN TRL_Skill s ON aps.skill_id = s.id
+            SELECT TRL_ApplicantDetails.email, TRL_Skill.name 
+            FROM TRL_ApplicantDetails 
+            JOIN TRL_ApplicantSkill ON TRL_ApplicantDetails.email = TRL_ApplicantSkill.applicant_email
+            JOIN TRL_Skill ON TRL_ApplicantSkill.skill_id = TRL_Skill.id
         """)
         rows = cursor.fetchall()
     applicant_skills = {}
@@ -45,24 +45,28 @@ def getskillnames():
 def filterapplicant(job_id):
     job_primary_skill, job_secondary_skill = getjob(job_id)
     job_skills = [job_primary_skill, job_secondary_skill]
-
     applicantemail = getapplicantemail()
     applicant_skills = getapplicantskills()
     listofskills = getskillnames()
-
     skill_matrix = []
     filtered_applicants = []
-    for applicant in applicantemail:
+    for applicant, submission_time in applicantemail:
         skill_vector = [1 if skill in applicant_skills.get(applicant, []) else 0 for skill in listofskills]
         if any(skill in job_skills for skill in applicant_skills.get(applicant, [])):
-            skill_matrix.append(skill_vector)
+            skill_matrix.append((skill_vector, submission_time))
             filtered_applicants.append(applicant)
-
     job_vector = [1 if skill in job_skills else 0 for skill in listofskills]
-
-    similarity_scores = [cosine_similarity(skill_vector, job_vector) for skill_vector in skill_matrix]
-
-    top_indices = sorted(range(len(similarity_scores)), key=lambda i: similarity_scores[i], reverse=True)[:5]
-    recommended_applicants = [filtered_applicants[i] for i in top_indices]
-
-    return recommended_applicants
+    similarity_scores = [(cosine_similarity(skill_vector, job_vector), submission_time) for skill_vector, submission_time in skill_matrix]
+    both_skills = []
+    one_skill = []
+    for i, (score, submission_time) in enumerate(similarity_scores):
+        matching_skills = sum(1 for skill in job_skills if skill in applicant_skills.get(filtered_applicants[i], []))
+        if matching_skills == 2:
+            both_skills.append((filtered_applicants[i], score, submission_time))
+        else:
+            one_skill.append((filtered_applicants[i], score, submission_time))
+    both_skills.sort(key=lambda x: x[2])  # Sort by submission time ascending
+    one_skill.sort(key=lambda x: x[2])  # Sort by submission time ascending
+    recommended_applicants_both_skills = [applicant for applicant, _, _ in both_skills]
+    recommended_applicants_one_skill = [applicant for applicant, _, _ in one_skill]
+    return recommended_applicants_both_skills, recommended_applicants_one_skill

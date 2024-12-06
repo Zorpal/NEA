@@ -16,6 +16,7 @@ class ApplicantDetails(models.Model):
     ], blank=True, null=True)
     cv = models.FileField(upload_to='cvs/', blank=True, null=True)
     recruitmenttracker = models.IntegerField(default=1)
+    timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.fullname

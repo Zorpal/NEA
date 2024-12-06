@@ -1,4 +1,3 @@
-// JobDetails.js
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
@@ -7,7 +6,12 @@ const JobDetails = () => {
   const { jobId } = useParams();
   const [job, setJob] = useState({});
   const [isStaff, setIsStaff] = useState(false);
-  const [recommendations, setRecommendations] = useState([]);
+  const [recommendationsBothSkills, setRecommendationsBothSkills] = useState(
+    []
+  );
+  const [recommendationsOneSkill, setRecommendationsOneSkill] = useState([]);
+  const [applicantDetails, setApplicantDetails] = useState({});
+  const [selectedApplicant, setSelectedApplicant] = useState(null);
 
   useEffect(() => {
     const retrievestaffstatus = async () => {
@@ -23,16 +27,6 @@ const JobDetails = () => {
     retrievestaffstatus();
   }, []);
 
-    //function to update the recruitment tracker of the applicant, parsing in the email, jobId and the recruitment tracker status
-    const updateRecruitmentTracker = async (email) => {
-      api
-        .post("/applicant/updatert/", { email, recruitmenttracker: 3, job_id: jobId })
-        .then((res) => {
-          alert("Recruitment tracker updated successfully");
-        })
-        .catch((err) => alert(err));
-    };
-
   const getJob = useCallback(async () => {
     try {
       const response = await api.get(`/Jobs/List/${jobId}`);
@@ -45,11 +39,24 @@ const JobDetails = () => {
   const getRecommendations = useCallback(async () => {
     try {
       const response = await api.get(`/Jobs/jobs/${jobId}/recommendations/`);
-      setRecommendations(response.data.recommendations);
+      setRecommendationsBothSkills(response.data.recommendations_both_skills);
+      setRecommendationsOneSkill(response.data.recommendations_one_skill);
     } catch (error) {
       console.error("Error fetching recommendations:", error);
     }
   }, [jobId]);
+
+  const getApplicantDetails = useCallback(async (email) => {
+    try {
+      const response = await api.get(`/applicant/details/${email}/`);
+      setApplicantDetails((prevDetails) => ({
+        ...prevDetails,
+        [email]: response.data[0],
+      }));
+    } catch (error) {
+      alert(error);
+    }
+  }, []);
 
   useEffect(() => {
     if (jobId) {
@@ -57,6 +64,26 @@ const JobDetails = () => {
       getRecommendations();
     }
   }, [jobId, getJob, getRecommendations]);
+
+  const updateRecruitmentTracker = async (email) => {
+    api
+      .post("/applicant/updatert/", {
+        email,
+        recruitmenttracker: 3,
+        job_id: jobId,
+      })
+      .then((res) => {
+        alert("Recruitment tracker updated successfully");
+      })
+      .catch((err) => alert(err));
+  };
+
+  const handleApplicantClick = (email) => {
+    setSelectedApplicant(email);
+    if (!applicantDetails[email]) {
+      getApplicantDetails(email);
+    }
+  };
 
   return (
     <div className="container">
@@ -84,12 +111,10 @@ const JobDetails = () => {
         {isStaff && (
           <div className="col-md-6">
             <div className="card">
-              <div className="card-header">
-                Recommended Applicants:
-              </div>
+              <div className="card-header">Applicants with Both Skills</div>
               <div className="card-body">
                 <ul className="list-group">
-                  {recommendations.map((email) => (
+                  {recommendationsBothSkills.map((email) => (
                     <li
                       key={email}
                       className="list-group-item d-flex justify-content-between align-items-center"
@@ -97,10 +122,107 @@ const JobDetails = () => {
                       {email}
                       <button
                         className="btn btn-primary"
+                        onClick={() => handleApplicantClick(email)}
+                        data-bs-toggle="collapse"
+                        data-bs-target={`#collapse-${email}`}
+                      >
+                        View Details
+                      </button>
+                      <button
+                        className="btn btn-primary"
                         onClick={() => updateRecruitmentTracker(email)}
                       >
                         Recommend this to applicant?
                       </button>
+                      <div className="collapse" id={`collapse-${email}`}>
+                        {applicantDetails[email] && (
+                          <div className="card card-body">
+                            <h5>Name: {applicantDetails[email].fullname}</h5>
+                            <p>Email: {applicantDetails[email].email}</p>
+                            <p>
+                              Phone Number:{" "}
+                              {applicantDetails[email].phonenumber}
+                            </p>
+                            <p>Skills: {applicantDetails[email].skills}</p>
+                            <p>
+                              Qualifications:{" "}
+                              {applicantDetails[email].qualifications}
+                            </p>
+                            <p>
+                              Preferences: {applicantDetails[email].preferences}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div
+              class="toast"
+              role="alert"
+              aria-live="assertive"
+              aria-atomic="true"
+            >
+              <div class="toast-header">
+                <strong class="me-auto">Bootstrap</strong>
+                <small>11 mins ago</small>
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-dismiss="toast"
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div class="toast-body">
+                Hello, world! This is a toast message.
+              </div>
+            </div>
+            <div className="card mt-3">
+              <div className="card-header">Applicants with One Skill</div>
+              <div className="card-body">
+                <ul className="list-group">
+                  {recommendationsOneSkill.map((email) => (
+                    <li
+                      key={email}
+                      className="list-group-item d-flex justify-content-between align-items-center"
+                    >
+                      {email}
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => handleApplicantClick(email)}
+                        data-bs-toggle="collapse"
+                        data-bs-target={`#collapse-${email}`}
+                      >
+                        View Details
+                      </button>
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => updateRecruitmentTracker(email)}
+                      >
+                        Recommend this to applicant?
+                      </button>
+                      <div className="collapse" id={`collapse-${email}`}>
+                        {applicantDetails[email] && (
+                          <div className="card card-body">
+                            <h5>Name: {applicantDetails[email].fullname}</h5>
+                            <p>Email: {applicantDetails[email].email}</p>
+                            <p>
+                              Phone Number:{" "}
+                              {applicantDetails[email].phonenumber}
+                            </p>
+                            <p>Skills: {applicantDetails[email].skills}</p>
+                            <p>
+                              Qualifications:{" "}
+                              {applicantDetails[email].qualifications}
+                            </p>
+                            <p>
+                              Preferences: {applicantDetails[email].preferences}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -114,4 +236,3 @@ const JobDetails = () => {
 };
 
 export default JobDetails;
-
