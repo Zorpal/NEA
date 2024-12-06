@@ -357,6 +357,7 @@ class ListApplicants(QueryClass):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #class to download an applicant's cv stored on the server
+#class to download an applicant's cv stored on the server
 class DownloadCV(QueryClass):
     def get(self, request, id):
         try:
