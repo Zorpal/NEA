@@ -81,8 +81,6 @@ const AddJob = () => {
         <div
           className="form-box"
           style={{
-            maxHeight: "600px",
-            overflowY: "auto",
             maxWidth: "600px",
             margin: "0 auto",
           }}
