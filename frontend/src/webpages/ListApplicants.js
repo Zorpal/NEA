@@ -6,6 +6,7 @@ import Authorisedroute from "../components/Authorisedroute";
 // Function to list all applicants who have sent their details in
 const ListApplicants = () => {
     const [ApplicantDetails, setApplicantDetails] = useState([]);
+    const [ApplicantsToContact, setApplicantsToContact] = useState([]);
     const [isStaff, setIsStaff] = useState(false);
     const navigate = useNavigate();
 
@@ -39,9 +40,21 @@ const ListApplicants = () => {
         }
     }, []);
 
+    // Retrieves applicants who need to be contacted
+    const getApplicantsToContact = useCallback(async () => {
+        try {
+            const response = await api.get("/applicant/applicants-to-contact/");
+            setApplicantsToContact(response.data);
+            console.log(response.data);
+        } catch (error) {
+            alert(error);
+        }
+    }, []);
+
     useEffect(() => {
         getApplicantDetails();
-    }, [getApplicantDetails]);
+        getApplicantsToContact();
+    }, [getApplicantDetails, getApplicantsToContact]);
 
     // Function to update the recruitment tracker of an applicant, it updates to 2 so their progress bar fills to 2
     const updateRecruitmentTracker = async (email) => {
@@ -54,10 +67,22 @@ const ListApplicants = () => {
         }
     };
 
+    // Function to update the recruitment tracker to stage 5 once contacted
+    const markAsContacted = async (email) => {
+        try {
+            await api.post("/applicant/update-contacted-applicant/", { email });
+            alert("Applicant marked as contacted");
+            getApplicantsToContact();
+        } catch (error) {
+            alert(error);
+        }
+    };
+
     if (!isStaff) {
         return null;
     }
-//function to download an applicant's cv
+
+    // Function to download an applicant's cv
     const downloadCV = (applicantId, fileName) => {
         fetch(`/applicant/applicant/${applicantId}/cv/`, {
             method: 'GET',
@@ -83,7 +108,7 @@ const ListApplicants = () => {
             .catch((error) => console.error('Unable to download applicant cv', error));
     };
 
-    //function to get the name of the cv file and allow the employee to download it
+    // Function to get the name of the cv file and allow the employee to download it
     const returncvname = (filePath) => {
         return filePath.split('\\').pop().split('/').pop();
     };
@@ -151,6 +176,55 @@ const ListApplicants = () => {
                                             This applicant has been reviewed already!
                                         </p>
                                     )}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <h2 className="my-4">Applicants to Contact</h2>
+                <div className="row">
+                    {ApplicantsToContact.map((details) => (
+                        <div
+                            key={details.id}
+                            className="col-md-4 mb-4"
+                            style={{
+                                border: "2px solid blue",
+                                margin: "5px",
+                            }}
+                        >
+                            <div className="card">
+                                <div className="card-body">
+                                    <h5 className="card-title">{details.fullname}</h5>
+                                    <p className="card-text">
+                                        <strong>Email:</strong> {details.email}
+                                    </p>
+                                    <p className="card-text">
+                                        <strong>Phone:</strong> 0{details.phonenumber}
+                                    </p>
+                                    <p className="card-text">
+                                        <strong>Skills:</strong>
+                                    </p>
+                                    <ul>
+                                        {details.skills ? (
+                                            details.skills
+                                                .split(",")
+                                                .map((skill, index) => <li key={index}>{skill}</li>)
+                                        ) : (
+                                            <li>No skills listed</li>
+                                        )}
+                                    </ul>
+                                    <p className="card-text">
+                                        <strong>Qualifications:</strong> {details.qualifications}
+                                    </p>
+                                    <p className="card-text">
+                                        <strong>Preferences:</strong> {details.preferences}
+                                    </p>
+                                    <button
+                                        className="btn btn-primary"
+                                        onClick={() => markAsContacted(details.email)}
+                                    >
+                                        Mark as Contacted
+                                    </button>
                                 </div>
                             </div>
                         </div>

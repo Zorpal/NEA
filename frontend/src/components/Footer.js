@@ -22,7 +22,7 @@ const Footer = () => {
   }, []);
 //renders the footer 
   return (
-    <nav className="navbar fixed-bottom navbar-expand-lg navbar-dark bg-dark">
+    <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
       <div className="container-md">
         <a className="navbar-brand" href="/">
           {isStaff

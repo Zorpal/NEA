@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
+import { Toast } from "bootstrap";
 
 const JobDetails = () => {
   const { jobId } = useParams();
@@ -12,6 +13,7 @@ const JobDetails = () => {
   const [recommendationsOneSkill, setRecommendationsOneSkill] = useState([]);
   const [applicantDetails, setApplicantDetails] = useState({});
   const [selectedApplicant, setSelectedApplicant] = useState(null);
+  const [toastMessage, setToastMessage] = useState("");
 
   useEffect(() => {
     const retrievestaffstatus = async () => {
@@ -66,16 +68,24 @@ const JobDetails = () => {
   }, [jobId, getJob, getRecommendations]);
 
   const updateRecruitmentTracker = async (email) => {
-    api
-      .post("/applicant/updatert/", {
+    try {
+      await api.post("/applicant/updatert/", {
         email,
         recruitmenttracker: 3,
         job_id: jobId,
-      })
-      .then((res) => {
-        alert("Recruitment tracker updated successfully");
-      })
-      .catch((err) => alert(err));
+      });
+      setToastMessage("Recruitment tracker updated successfully");
+      showToast();
+    } catch (error) {
+      setToastMessage("Error updating recruitment tracker");
+      showToast();
+    }
+  };
+
+  const showToast = () => {
+    const toastLiveExample = document.getElementById("liveToast");
+    const toastBootstrap = Toast.getOrCreateInstance(toastLiveExample);
+    toastBootstrap.show();
   };
 
   const handleApplicantClick = (email) => {
@@ -83,6 +93,9 @@ const JobDetails = () => {
     if (!applicantDetails[email]) {
       getApplicantDetails(email);
     }
+    const toastLiveExample = document.getElementById(`liveToast-${email}`);
+    const toastBootstrap = Toast.getOrCreateInstance(toastLiveExample);
+    toastBootstrap.show();
   };
 
   return (
@@ -110,126 +123,185 @@ const JobDetails = () => {
         </div>
         {isStaff && (
           <div className="col-md-6">
-            <div className="card">
-              <div className="card-header">Applicants with Both Skills</div>
-              <div className="card-body">
-                <ul className="list-group">
-                  {recommendationsBothSkills.map((email) => (
-                    <li
-                      key={email}
-                      className="list-group-item d-flex justify-content-between align-items-center"
-                    >
-                      {email}
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => handleApplicantClick(email)}
-                        data-bs-toggle="collapse"
-                        data-bs-target={`#collapse-${email}`}
-                      >
-                        View Details
-                      </button>
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => updateRecruitmentTracker(email)}
-                      >
-                        Recommend this to applicant?
-                      </button>
-                      <div className="collapse" id={`collapse-${email}`}>
-                        {applicantDetails[email] && (
-                          <div className="card card-body">
-                            <h5>Name: {applicantDetails[email].fullname}</h5>
-                            <p>Email: {applicantDetails[email].email}</p>
-                            <p>
-                              Phone Number:{" "}
-                              {applicantDetails[email].phonenumber}
-                            </p>
-                            <p>Skills: {applicantDetails[email].skills}</p>
-                            <p>
-                              Qualifications:{" "}
-                              {applicantDetails[email].qualifications}
-                            </p>
-                            <p>
-                              Preferences: {applicantDetails[email].preferences}
-                            </p>
+            <div className="row">
+              <div className="col-md-12">
+                <div className="card">
+                  <div className="card-header">Applicants with Both Skills</div>
+                  <div className="card-body">
+                    <ul className="list-group">
+                      {recommendationsBothSkills.map((email) => (
+                        <li
+                          key={email}
+                          className="list-group-item d-flex justify-content-between align-items-center"
+                        >
+                          {email}
+                          <button
+                            className="btn btn-primary"
+                            onClick={() => handleApplicantClick(email)}
+                          >
+                            View Details
+                          </button>
+                          <button
+                            className="btn btn-primary"
+                            onClick={() => updateRecruitmentTracker(email)}
+                          >
+                            Recommend this to applicant?
+                          </button>
+                          <div
+                            className="toast-container position-fixed bottom-0 end-0 p-3"
+                            id={`toast-container-${email}`}
+                          >
+                            <div
+                              id={`liveToast-${email}`}
+                              className="toast"
+                              role="alert"
+                              aria-live="assertive"
+                              aria-atomic="true"
+                            >
+                              <div className="toast-header">
+                                <strong className="me-auto">
+                                  Applicant Details
+                                </strong>
+                                <button
+                                  type="button"
+                                  className="btn-close"
+                                  data-bs-dismiss="toast"
+                                  aria-label="Close"
+                                ></button>
+                              </div>
+                              <div className="toast-body">
+                                {applicantDetails[email] && (
+                                  <div>
+                                    <h5>
+                                      Name: {applicantDetails[email].fullname}
+                                    </h5>
+                                    <p>Email: {applicantDetails[email].email}</p>
+                                    <p>
+                                      Phone Number:{" "}
+                                      {applicantDetails[email].phonenumber}
+                                    </p>
+                                    <p>Skills: {applicantDetails[email].skills}</p>
+                                    <p>
+                                      Qualifications:{" "}
+                                      {applicantDetails[email].qualifications}
+                                    </p>
+                                    <p>
+                                      Preferences:{" "}
+                                      {applicantDetails[email].preferences}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div
-              class="toast"
-              role="alert"
-              aria-live="assertive"
-              aria-atomic="true"
-            >
-              <div class="toast-header">
-                <strong class="me-auto">Bootstrap</strong>
-                <small>11 mins ago</small>
-                <button
-                  type="button"
-                  class="btn-close"
-                  data-bs-dismiss="toast"
-                  aria-label="Close"
-                ></button>
-              </div>
-              <div class="toast-body">
-                Hello, world! This is a toast message.
-              </div>
-            </div>
-            <div className="card mt-3">
-              <div className="card-header">Applicants with One Skill</div>
-              <div className="card-body">
-                <ul className="list-group">
-                  {recommendationsOneSkill.map((email) => (
-                    <li
-                      key={email}
-                      className="list-group-item d-flex justify-content-between align-items-center"
-                    >
-                      {email}
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => handleApplicantClick(email)}
-                        data-bs-toggle="collapse"
-                        data-bs-target={`#collapse-${email}`}
-                      >
-                        View Details
-                      </button>
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => updateRecruitmentTracker(email)}
-                      >
-                        Recommend this to applicant?
-                      </button>
-                      <div className="collapse" id={`collapse-${email}`}>
-                        {applicantDetails[email] && (
-                          <div className="card card-body">
-                            <h5>Name: {applicantDetails[email].fullname}</h5>
-                            <p>Email: {applicantDetails[email].email}</p>
-                            <p>
-                              Phone Number:{" "}
-                              {applicantDetails[email].phonenumber}
-                            </p>
-                            <p>Skills: {applicantDetails[email].skills}</p>
-                            <p>
-                              Qualifications:{" "}
-                              {applicantDetails[email].qualifications}
-                            </p>
-                            <p>
-                              Preferences: {applicantDetails[email].preferences}
-                            </p>
+              <div className="col-md-12 mt-3">
+                <div className="card">
+                  <div className="card-header">Applicants with One Skill</div>
+                  <div className="card-body">
+                    <ul className="list-group">
+                      {recommendationsOneSkill.map((email) => (
+                        <li
+                          key={email}
+                          className="list-group-item d-flex justify-content-between align-items-center"
+                        >
+                          {email}
+                          <button
+                            className="btn btn-primary"
+                            onClick={() => handleApplicantClick(email)}
+                          >
+                            View Details
+                          </button>
+                          <button
+                            className="btn btn-primary"
+                            onClick={() => updateRecruitmentTracker(email)}
+                          >
+                            Recommend this to applicant?
+                          </button>
+                          <div
+                            className="toast-container position-fixed bottom-0 end-0 p-3"
+                            id={`toast-container-${email}`}
+                          >
+                            <div
+                              id={`liveToast-${email}`}
+                              className="toast"
+                              role="alert"
+                              aria-live="assertive"
+                              aria-atomic="true"
+                            >
+                              <div className="toast-header">
+                                <strong className="me-auto">
+                                  Applicant Details
+                                </strong>
+                                <button
+                                  type="button"
+                                  className="btn-close"
+                                  data-bs-dismiss="toast"
+                                  aria-label="Close"
+                                ></button>
+                              </div>
+                              <div className="toast-body">
+                                {applicantDetails[email] && (
+                                  <div>
+                                    <h5>
+                                      Name: {applicantDetails[email].fullname}
+                                    </h5>
+                                    <p>Email: {applicantDetails[email].email}</p>
+                                    <p>
+                                      Phone Number:{" "}
+                                      {applicantDetails[email].phonenumber}
+                                    </p>
+                                    <p>Skills: {applicantDetails[email].skills}</p>
+                                    <p>
+                                      Qualifications:{" "}
+                                      {applicantDetails[email].qualifications}
+                                    </p>
+                                    <p>
+                                      Preferences:{" "}
+                                      {applicantDetails[email].preferences}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         )}
+      </div>
+      <div
+        className="toast-container position-fixed bottom-0 end-0 p-3"
+        id="toast-container"
+      >
+        <div
+          id="liveToast"
+          className="toast"
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
+        >
+          <div className="toast-header">
+            <strong className="me-auto">Notification</strong>
+            <button
+              type="button"
+              className="btn-close"
+              data-bs-dismiss="toast"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div className="toast-body">{toastMessage}</div>
+        </div>
       </div>
     </div>
   );

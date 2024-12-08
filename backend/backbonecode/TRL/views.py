@@ -1,5 +1,5 @@
 from rest_framework.generics import *
-from .models import *
+from .models import ApplicantDetails, JobDetails, ApplicantSkill, Skill
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.views import APIView
 from rest_framework import status
@@ -15,6 +15,8 @@ from django.http import HttpResponse
 from .filterapplicants import filterapplicant
 import os
 from datetime import datetime
+from django.core.exceptions import SuspiciousFileOperation
+from django.conf import settings
 #class to filter applicants based on their skills that match to a job (uses code in filterapplicants.py)
 class RecommendApplicanttoJob(APIView):
     permission_classes = [IsAuthenticated]
@@ -363,11 +365,52 @@ class DownloadCV(QueryClass):
         try:
             applicant = ApplicantDetails.objects.get(id=id)
             file_path = applicant.cv.path
+            if not file_path.startswith(settings.MEDIA_ROOT):
+                raise SuspiciousFileOperation("The file is located outside of the base path component.")
             if os.path.exists(file_path):
                 with open(file_path, 'rb') as cv:
                     response = HttpResponse(cv.read(), content_type="application/octet-stream")
                     response['Content-Disposition'] = 'inline; filename=' + os.path.basename(file_path)
                     return response
             return Response(status=status.HTTP_404_NOT_FOUND)
+        except ApplicantDetails.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        except FileNotFoundError:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+# views.py
+class ApplicantsToContact(QueryClass):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        try:
+            query = '''
+            SELECT TRL_applicantdetails.id, TRL_applicantdetails.fullname, TRL_applicantdetails.email, TRL_applicantdetails.phonenumber, TRL_applicantdetails.qualifications, TRL_applicantdetails.preferences, TRL_applicantdetails.cv, TRL_applicantdetails.recruitmenttracker, 
+            GROUP_CONCAT(TRL_skill.name) as skills FROM TRL_applicantdetails 
+            LEFT JOIN TRL_applicantskill ON TRL_applicantdetails.email = TRL_applicantskill.applicant_email 
+            LEFT JOIN TRL_skill ON TRL_applicantskill.skill_id = TRL_skill.id 
+            WHERE TRL_applicantdetails.recruitmenttracker = 4
+            GROUP BY TRL_applicantdetails.id, TRL_applicantdetails.fullname, TRL_applicantdetails.email, TRL_applicantdetails.phonenumber, TRL_applicantdetails.qualifications, TRL_applicantdetails.preferences, TRL_applicantdetails.cv, TRL_applicantdetails.recruitmenttracker
+            '''
+            rows, description = self.query(query, [])
+            if rows is not None:
+                columns = [col[0] for col in description]
+                results = [dict(zip(columns, row)) for row in rows]
+                return Response(results)
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+# views.py
+class UpdateContactedApplicant(QueryClass):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        email = request.data.get('email')
+        try:
+            applicant = ApplicantDetails.objects.get(email=email)
+            applicant.recruitmenttracker = 5
+            applicant.save()
+            return Response(status=status.HTTP_200_OK)
         except ApplicantDetails.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)

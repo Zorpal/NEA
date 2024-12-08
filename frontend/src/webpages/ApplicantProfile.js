@@ -61,6 +61,8 @@ const ApplicantProfile = () => {
         return { width: "75%", label: "Stage 3/4" };
       case 4:
         return { width: "100%", label: "Stage 4/4" };
+      case 5:
+        return { width: "100%", label: "Stage 4/4" };
       default:
         return { width: "0%", label: "" };
     }
@@ -76,6 +78,8 @@ const ApplicantProfile = () => {
       case 3:
         return "We have found you a job that matches your skills, check your email and please confirm that you are interested in this job!";
       case 4:
+        return "We have successfully matched you with a job, congratulations! Please look out for an email/call from us with further details.";
+      case 5:
         return "We have successfully matched you with a job, congratulations! Please look out for an email/call from us with further details.";
       default:
         return "";
