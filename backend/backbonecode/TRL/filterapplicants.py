@@ -66,17 +66,14 @@ def filterapplicant(job_id):
         if any(skill in job_skills for skill in applicant_skills.get(applicant, [])):
             skill_matrix.append((skillvector, submission_time))
             filtered_applicants.append(applicant)
-    
-    # Create job skill vector
     job_vector = [1 if skill in job_skills else 0 for skill in listofskills]
     
-    # Calculate similarity scores between job and applicant skill vectors
+    #calculates similarity scores between job skill and applicant skill vectors
     similarity_scores = [(cosine_similarity(skillvector, job_vector), submission_time) for skillvector, submission_time in skill_matrix]
     
     both_skills = []
     one_skill = []
-    
-    # Separate applicants based on the number of matching skills
+
     for i, (score, submission_time) in enumerate(similarity_scores):
         matching_skills = sum(1 for skill in job_skills if skill in applicant_skills.get(filtered_applicants[i], []))
         if matching_skills == 2:

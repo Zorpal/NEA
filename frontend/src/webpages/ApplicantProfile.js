@@ -1,10 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import Authorisedroute from "../components/Authorisedroute";
 import api from "../api";
+import { Modal, Button, Form } from "react-bootstrap";
+import ReCAPTCHA from "react-google-recaptcha";
+import ApplicantContext from "../context/ApplicantContext";
 
 //function to display the profile of an applicant
 const ApplicantProfile = () => {
   const [applicantDetails, setApplicantDetails] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const { userinformation } = useContext(ApplicantContext);
 
   useEffect(() => {
     getApplicantDetails();
@@ -13,14 +20,24 @@ const ApplicantProfile = () => {
   //function to delete the details stored in the database, removes them from TRL_applicantdetails and TRL_applicantskills
   const deleteApplicantDetails = (id) => {
     api
-      .delete(`/applicant/details/delete/${id}/`).then((res) => {
-      if (res.status === 204) {
-        alert("Applicant details deleted successfully");
-        getApplicantDetails();
-      } else {
-        alert("Error deleting applicant details");
-      }
-    });
+      .post("/applicant/verify-captcha/", { token: captchaToken })
+      .then((res) => {
+        if (res.status === 200) {
+          api
+            .delete(`/applicant/details/delete/${id}/`)
+            .then((res) => {
+              if (res.status === 204) {
+                alert("Applicant details deleted successfully");
+                getApplicantDetails();
+              } else {
+                alert("Error deleting applicant details");
+              }
+            });
+        } else {
+          alert("CAPTCHA verification failed");
+        }
+      })
+      .catch((err) => alert("Error verifying CAPTCHA"));
   };
 
   //function to get the details of the applicant from the database
@@ -86,6 +103,30 @@ const ApplicantProfile = () => {
     }
   };
 
+  const handleDeleteClick = (id) => {
+    setDeleteId(id);
+    setShowModal(true);
+  };
+
+  const handleModalClose = () => {
+    setShowModal(false);
+    setDeleteId(null);
+    setCaptchaToken(null);
+  };
+
+  const handleModalSubmit = () => {
+    if (deleteId !== null && captchaToken) {
+      deleteApplicantDetails(deleteId);
+      handleModalClose();
+    } else {
+      alert("Please complete the CAPTCHA");
+    }
+  };
+
+  const handleCaptchaChange = (token) => {
+    setCaptchaToken(token);
+  };
+
   return (
     <Authorisedroute>
       <div className="container mt-5">
@@ -122,7 +163,7 @@ const ApplicantProfile = () => {
 
                     <button
                       className="btn btn-danger mt-3"
-                      onClick={() => deleteApplicantDetails(details.id)}
+                      onClick={() => handleDeleteClick(details.id)}
                     >
                       Delete
                     </button>
@@ -185,6 +226,26 @@ const ApplicantProfile = () => {
           </div>
         </div>
       </div>
+
+      <Modal show={showModal} onHide={handleModalClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Verify CAPTCHA</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <ReCAPTCHA
+            sitekey="6LfpyZYqAAAAAM-7ZypwZrDKblkTZWUCTQ6aPjJA"
+            onChange={handleCaptchaChange}
+          />
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleModalClose}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleModalSubmit}>
+            Confirm
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Authorisedroute>
   );
 };

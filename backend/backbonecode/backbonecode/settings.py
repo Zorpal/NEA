@@ -98,6 +98,9 @@ USE_I18N = True
 
 USE_TZ = True
 
+RECAPTCHA_SITE_KEY = '6LfpyZYqAAAAAM-7ZypwZrDKblkTZWUCTQ6aPjJA'
+RECAPTCHA_SECRET_KEY = '6LfpyZYqAAAAADcKWmk4LBZVDev2OejLvfHWoRTo'
+
 STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

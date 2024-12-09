@@ -25,4 +25,5 @@ urlpatterns = [
     path('applicants-to-contact/', ApplicantsToContact.as_view(), name='ApplicantsToContact'),
     path('update-contacted-applicant/', UpdateContactedApplicant.as_view(), name='UpdateContactedApplicant'),
     path('jobs/<int:job_id>/recommendations/', RecommendApplicanttoJob.as_view(), name='job-recommendations'),
+    path('verify-captcha/', VerifyCaptcha.as_view(), name='captcha'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

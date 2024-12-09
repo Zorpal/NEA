@@ -15,6 +15,8 @@ from django.http import HttpResponse
 from .filterapplicants import filterapplicant
 import os
 from datetime import datetime
+from django.conf import settings
+import requests
 
 #class to filter applicants based on their skills that match to a job (uses code in filterapplicants.py)
 class RecommendApplicanttoJob(APIView):
@@ -289,7 +291,7 @@ class GoogleSSO(QueryClass):
             user = self.login(email)
             token = AccessToken.for_user(user)
             return Response({'access_token': str(token), 'username': email})
-        return Response(status=status.HTTP_400_BTRL_applicantdetails_REQUEST)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 #login method to check if the user is in the database, if not it will insert the user into the database
     def login(self, email):
@@ -410,3 +412,23 @@ class UpdateContactedApplicant(QueryClass):
             return Response(status=status.HTTP_200_OK)
         except ApplicantDetails.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
+
+class VerifyCaptcha(APIView):
+    def post(self, request):
+        token = request.data.get('token')
+        if not token:
+            return Response({'error': 'Token is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        url = 'https://www.google.com/recaptcha/api/siteverify'
+        data = {
+            'secret': settings.RECAPTCHA_SECRET_KEY,
+            'response': token
+        }
+        response = requests.post(url, data=data)
+        result = response.json()
+
+        if result.get('success'):
+            return Response({'message': 'CAPTCHA verification successful'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'Invalid CAPTCHA'}, status=status.HTTP_400_BAD_REQUEST)
+    
