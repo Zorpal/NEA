@@ -3,7 +3,6 @@ import Authorisedroute from "../components/Authorisedroute";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
 
-//function to add a job listing to the database in the backend server
 const AddJob = () => {
   const [jobtitle, setjobtitle] = useState("");
   const [companyname, setcompanyname] = useState("");
@@ -19,7 +18,6 @@ const AddJob = () => {
   const [isStaff, setIsStaff] = useState(false);
   const navigate = useNavigate();
 
-  //determines if the user is an employee, if not then it redirects them to the homepage
   useEffect(() => {
     const retrievestaffstatus = async () => {
       try {
@@ -40,7 +38,11 @@ const AddJob = () => {
 
   const sendJobDetails = async (e) => {
     e.preventDefault();
-    console.log("Form submitted");
+    if (!e.target.checkValidity()) {
+      e.stopPropagation();
+      e.target.classList.add('was-validated');
+      return;
+    }
 
     const formData = new FormData();
     formData.append("jobtitle", jobtitle);
@@ -87,10 +89,10 @@ const AddJob = () => {
         >
           <form
             onSubmit={sendJobDetails}
-            className="needs-validation"
+            className="row g-3 needs-validation"
             noValidate
           >
-            <div className="mb-3">
+            <div className="col-md-12 mb-3">
               <label htmlFor="jobtitle" className="form-label">
                 Job Title
               </label>
@@ -103,8 +105,9 @@ const AddJob = () => {
                 onChange={(e) => setjobtitle(e.target.value)}
                 required
               />
+              <div className="invalid-feedback">Job title is required.</div>
             </div>
-            <div className="mb-3">
+            <div className="col-md-12 mb-3">
               <label htmlFor="companyname" className="form-label">
                 Company Name
               </label>
@@ -117,8 +120,9 @@ const AddJob = () => {
                 onChange={(e) => setcompanyname(e.target.value)}
                 required
               />
+              <div className="invalid-feedback">Company name is required.</div>
             </div>
-            <div className="mb-3">
+            <div className="col-md-12 mb-3">
               <label htmlFor="salary" className="form-label">
                 Salary
               </label>
@@ -130,9 +134,13 @@ const AddJob = () => {
                 value={salary}
                 onChange={(e) => setsalary(e.target.value)}
                 required
+                pattern="\d+"
               />
+              <div className="invalid-feedback">
+                Salary is required and must be an integer.
+              </div>
             </div>
-            <div className="mb-3">
+            <div className="col-md-12 mb-3">
               <label htmlFor="jobdescription" className="form-label">
                 Job Description
               </label>
@@ -144,8 +152,11 @@ const AddJob = () => {
                 onChange={(e) => setjobdescription(e.target.value)}
                 required
               ></textarea>
+              <div className="invalid-feedback">
+                Job description is required.
+              </div>
             </div>
-            <div className="mb-3">
+            <div className="col-md-12 mb-3">
               <label htmlFor="dateposted" className="form-label">
                 Date Posted
               </label>
@@ -158,8 +169,9 @@ const AddJob = () => {
                 onChange={(e) => setdateposted(e.target.value)}
                 required
               />
+              <div className="invalid-feedback">Date posted is required.</div>
             </div>
-            <div className="mb-3">
+            <div className="col-md-12 mb-3">
               <label htmlFor="location" className="form-label">
                 Location
               </label>
@@ -172,22 +184,31 @@ const AddJob = () => {
                 onChange={(e) => setlocation(e.target.value)}
                 required
               />
+              <div className="invalid-feedback">Location is required.</div>
             </div>
-            <div className="mb-3">
+            <div className="col-md-12 mb-3">
               <label htmlFor="jobtype" className="form-label">
                 Job Type
               </label>
-              <input
-                type="text"
+              <select
                 className="form-control"
                 id="jobtype"
                 name="jobtype"
                 value={jobtype}
                 onChange={(e) => setjobtype(e.target.value)}
                 required
-              />
+              >
+                <option value="">Select Job Type</option>
+                <option value="Full Time">Full Time</option>
+                <option value="Part Time">Part Time</option>
+                <option value="Temporary">Temporary</option>
+                <option value="Seasonal">Seasonal</option>
+                <option value="Internship">Internship</option>
+                <option value="Contract">Contract</option>
+              </select>
+              <div className="invalid-feedback">Job type is required.</div>
             </div>
-            <div className="mb-3">
+            <div className="col-md-12 mb-3">
               <label htmlFor="deadline" className="form-label">
                 Deadline
               </label>
@@ -200,8 +221,9 @@ const AddJob = () => {
                 onChange={(e) => setdeadline(e.target.value)}
                 required
               />
+              <div className="invalid-feedback">Deadline is required.</div>
             </div>
-            <div className="mb-3">
+            <div className="col-md-12 mb-3">
               <label htmlFor="jobprimaryskill" className="form-label">
                 Primary Skill
               </label>
@@ -231,10 +253,13 @@ const AddJob = () => {
                 <option value="Surgeon">Surgeon</option>
                 <option value="Nursing">Nursing</option>
               </select>
+              <div className="invalid-feedback">
+                A skill is required
+              </div>
             </div>
-            <div className="mb-3">
+            <div className="col-md-12 mb-3">
               <label htmlFor="jobsecondaryskill" className="form-label">
-                Secondary Skill
+                Secondary skill
               </label>
               <select
                 className="form-control"
@@ -262,12 +287,14 @@ const AddJob = () => {
                 <option value="Surgeon">Surgeon</option>
                 <option value="Nursing">Nursing</option>
               </select>
+              <div className="invalid-feedback">
+                A skill is required
+              </div>
             </div>
-            <div className="text-center">
+            <div className="col-12 text-center">
               <button
                 type="submit"
                 className="btn btn-primary"
-                onClick={sendJobDetails}
               >
                 Submit
               </button>

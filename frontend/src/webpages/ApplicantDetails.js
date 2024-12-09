@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Authorisedroute from "../components/Authorisedroute";
 import api from "../api";
@@ -20,9 +20,30 @@ const ApplicantDetails = () => {
 
   const navigate = useNavigate();
 
+  // Fetch the currently logged-in user's email
+  useEffect(() => {
+    const fetchUserEmail = async () => {
+      try {
+        const response = await api.get("/applicant/retrieve-staff-status");
+        if (response.status === 200) {
+          setemail(response.data.email);
+        }
+      } catch (error) {
+        console.error("Error fetching user email:", error);
+      }
+    };
+    fetchUserEmail();
+  }, []);
+
   //function to send the applicant details to the backend
   const sendApplicantDetails = async (e) => {
     e.preventDefault();
+    if (!e.target.checkValidity()) {
+      e.stopPropagation();
+      e.target.classList.add('was-validated');
+      return;
+    }
+
     const formData = new FormData();
     formData.append("fullname", fullname);
     formData.append("email", email);
@@ -99,6 +120,7 @@ const ApplicantDetails = () => {
         <div className="row justify-content-center">
           <div className="col-md-8">
             <h2>Fill out your details!</h2>
+            <p>Fields marked with '*' are required.</p>
             <div
               className="form-box"
               style={{ maxHeight: "600px", overflowY: "auto" }}
@@ -109,7 +131,7 @@ const ApplicantDetails = () => {
                 noValidate
               >
                 <div className="mb-3">
-                  <label className="form-label">Full name</label>
+                  <label className="form-label">Full name*</label>
                   <input
                     className="form-control"
                     id="fullname"
@@ -130,8 +152,8 @@ const ApplicantDetails = () => {
                     type="email"
                     className="form-control"
                     id="email"
-                    onChange={(e) => setemail(e.target.value)}
                     value={email}
+                    readOnly
                     required
                   />
                   <div className="valid-feedback">Looks good!</div>
@@ -141,7 +163,7 @@ const ApplicantDetails = () => {
                 </div>
                 <div className="mb-3">
                   <label htmlFor="phonenumber" className="form-label">
-                    Phone Number
+                    Phone Number*
                   </label>
                   <input
                     className="form-control"
@@ -157,7 +179,7 @@ const ApplicantDetails = () => {
                 </div>
                 <div className="mb-3">
                   <label htmlFor="skill_1" className="form-label">
-                    Experience in what fields?
+                    Experience in what fields?*
                   </label>
                   <input
                     type="text"
@@ -186,7 +208,7 @@ const ApplicantDetails = () => {
 
                 <div className="mb-3">
                   <label htmlFor="skill_2" className="form-label">
-                    Experience in what fields?
+                    Experience in what fields?*
                   </label>
                   <input
                     type="text"
@@ -195,6 +217,7 @@ const ApplicantDetails = () => {
                     list="skill_2_options"
                     onChange={(e) => setskill_2(e.target.value)}
                     value={skill_2}
+                    required
                   />
                   <datalist id="skill_2_options">
                     <option value="Adult Social Care" />
@@ -213,7 +236,7 @@ const ApplicantDetails = () => {
                 </div>
                 <div className="mb-3">
                   <label htmlFor="skill_3" className="form-label">
-                    Experience in what fields?
+                    Experience in what fields? (Optional)
                   </label>
                   <input
                     type="text"
@@ -235,13 +258,11 @@ const ApplicantDetails = () => {
                     <option value="Surgeon" />
                     <option value="Nursing" />
                   </datalist>
-                  <div className="valid-feedback">Looks good!</div>
-                  <div className="invalid-feedback">Please select a field!</div>
                 </div>
 
                 <div className="mb-3">
                   <label htmlFor="skill_4" className="form-label">
-                    Experience in what fields?
+                    Experience in what fields? (Optional)
                   </label>
                   <input
                     type="text"
@@ -263,13 +284,11 @@ const ApplicantDetails = () => {
                     <option value="Surgeon" />
                     <option value="Nursing" />
                   </datalist>
-                  <div className="valid-feedback">Looks good!</div>
-                  <div className="invalid-feedback">Please select a field!</div>
                 </div>
 
                 <div className="mb-3">
                   <label htmlFor="skill_5" className="form-label">
-                    Experience in what fields?
+                    Experience in what fields? (Optional)
                   </label>
                   <input
                     type="text"
@@ -291,12 +310,10 @@ const ApplicantDetails = () => {
                     <option value="Surgeon" />
                     <option value="Nursing" />
                   </datalist>
-                  <div className="valid-feedback">Looks good!</div>
-                  <div className="invalid-feedback">Please select a field!</div>
                 </div>
                 <div className="mb-3">
                   <label htmlFor="qualifications" className="form-label">
-                    Qualifications:
+                    Qualifications:*
                   </label>
                   <textarea
                     className="form-control"
@@ -312,7 +329,7 @@ const ApplicantDetails = () => {
                 </div> 
                 <div className="mb-3">
                   <label htmlFor="preferences" className="form-label">
-                    Preferences
+                    Preferences*
                   </label>
                   <select
                     className="form-select"
@@ -326,12 +343,14 @@ const ApplicantDetails = () => {
                     <option value="Part Time">Part Time</option>
                     <option value="Seasonal">Seasonal</option>
                     <option value="Internship">Internship</option>
+                    <option value="Contract">Contract</option>
+                    <option value="Temporary">Temporary</option>
                   </select>
                   <div className="valid-feedback">Looks good!</div>
                   <div className="invalid-feedback">Please select a preference!</div>
                 </div>
                 <div className="form-group">
-                  <label htmlFor="cv">Upload a CV (Accepted formats: .pdf, .docx)</label>
+                  <label htmlFor="cv">Upload a CV* (Accepted formats: .pdf, .docx)</label>
                   <br />
                   <input
                     type="file"
@@ -342,15 +361,16 @@ const ApplicantDetails = () => {
                   />
                   {cvError && <div className="text-danger">{cvError}</div>}
                 </div>
+                <div className="col-12 text-center">
+                  <button
+                    type="submit"
+                    className="btn btn-primary mt-3"
+                  >
+                    Submit
+                  </button>
+                </div>
               </form>
             </div>
-            <button
-              type="submit"
-              className="btn btn-primary mt-3"
-              onClick={sendApplicantDetails}
-            >
-              Submit
-            </button>
           </div>
         </div>
       </div>

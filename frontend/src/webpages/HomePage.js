@@ -29,10 +29,16 @@ const HomePage = () => {
             <strong>Home:</strong> Click on the <strong>Home</strong> button to return to the main page.
           </p>
           <p className="card-text">
-            <strong>Jobs:</strong> Click on the <strong>Jobs</strong> button to browse through the available job listings. You can filter jobs based on the employment type i.e. full-time, part-time, seasonal, internship, temporary and contract.
+            <strong>Register:</strong> Click on the <strong>Register</strong> button to create an account. You will be asked to enter in a username, email and password. Once you have registered, you can log in to your account. Alternatively, if you with to register with a Google account, click on <strong>Login</strong>.
           </p>
           <p className="card-text">
-            <strong>Profile:</strong> Click on the Profile button to view the stage you are at within the recruitment process, edit your personal information. Here you may submit your details along with a CV and we will help you along the way!
+            <strong>Login:</strong> Click on the <strong>Login</strong> button to access your account. You will be asked to enter your username and password, or you can sign in with a Google account.
+          </p>
+          <p className="card-text">
+            <strong>Jobs:</strong> Click on the <strong>Jobs</strong> button to browse through the available job listings. You can filter jobs based on the employment type i.e. full-time, part-time, seasonal, internship, temporary and contract. To see more details about the job, click on the blue button that has the job title in it.
+          </p>
+          <p className="card-text">
+            <strong>Profile:</strong> Click on the <strong>Profile</strong> button to view the stage you are at within the recruitment process, edit your personal information. Here you may submit your details along with a CV and we will help you along the way!
           </p>
         </div>
       </div>

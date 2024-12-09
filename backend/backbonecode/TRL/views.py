@@ -15,8 +15,7 @@ from django.http import HttpResponse
 from .filterapplicants import filterapplicant
 import os
 from datetime import datetime
-from django.core.exceptions import SuspiciousFileOperation
-from django.conf import settings
+
 #class to filter applicants based on their skills that match to a job (uses code in filterapplicants.py)
 class RecommendApplicanttoJob(APIView):
     permission_classes = [IsAuthenticated]
@@ -333,6 +332,7 @@ class RetrieveStaffStatus(QueryClass):
         return Response({
             'username': user.username,
             'is_staff': user.is_staff,
+            'email': user.email
         })
 
 #class to return a list of all applicants and their details in the database
@@ -358,15 +358,13 @@ class ListApplicants(QueryClass):
         except Exception:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-#class to download an applicant's cv stored on the server
+
 #class to download an applicant's cv stored on the server
 class DownloadCV(QueryClass):
     def get(self, request, id):
         try:
             applicant = ApplicantDetails.objects.get(id=id)
             file_path = applicant.cv.path
-            if not file_path.startswith(settings.MEDIA_ROOT):
-                raise SuspiciousFileOperation("The file is located outside of the base path component.")
             if os.path.exists(file_path):
                 with open(file_path, 'rb') as cv:
                     response = HttpResponse(cv.read(), content_type="application/octet-stream")
@@ -378,7 +376,6 @@ class DownloadCV(QueryClass):
         except FileNotFoundError:
             return Response(status=status.HTTP_404_NOT_FOUND)
         
-# views.py
 class ApplicantsToContact(QueryClass):
     permission_classes = [IsAdminUser]
 
@@ -401,7 +398,6 @@ class ApplicantsToContact(QueryClass):
         except Exception:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-# views.py
 class UpdateContactedApplicant(QueryClass):
     permission_classes = [IsAuthenticated]
 
