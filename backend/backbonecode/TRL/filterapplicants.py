@@ -71,7 +71,7 @@ def filterapplicant(job_id):
     #calculates similarity scores between job skill and applicant skill vectors
     similarity_scores = [(cosine_similarity(skillvector, job_vector), submission_time) for skillvector, submission_time in skill_matrix]
     
-    both_skills = []
+    both_skills = [] #simple lists to store applicants with both skills
     one_skill = []
 
     for i, (score, submission_time) in enumerate(similarity_scores):
@@ -81,30 +81,30 @@ def filterapplicant(job_id):
         else:
             one_skill.append((filtered_applicants[i], score, submission_time))
     
-    # Stack operations for both_skills
-    main_stack_both_skills = []
-    temp_stack_both_skills = []
+    #Stacks implemented to account for submission time of applicants and makes sure applicants 
+    # to go first are at the top of the stack
+    stack_2skills = []
+    temp = []
     
     for applicant, score, submission_time in both_skills:
-        while main_stack_both_skills and main_stack_both_skills[-1][2] > submission_time:
-            temp_stack_both_skills.append(main_stack_both_skills.pop())
-        main_stack_both_skills.append((applicant, score, submission_time))
-        while temp_stack_both_skills:
-            main_stack_both_skills.append(temp_stack_both_skills.pop())
+        while stack_2skills and stack_2skills[-1][2] > submission_time:
+            temp.append(stack_2skills.pop())
+        stack_2skills.append((applicant, score, submission_time))
+        while temp:
+            stack_2skills.append(temp.pop())
     
-    # Stack operations for one_skill
-    main_stack_one_skill = []
-    temp_stack_one_skill = []
+    stack_1skill = []
+    temp = []
     
     for applicant, score, submission_time in one_skill:
-        while main_stack_one_skill and main_stack_one_skill[-1][2] > submission_time:
-            temp_stack_one_skill.append(main_stack_one_skill.pop())
-        main_stack_one_skill.append((applicant, score, submission_time))
-        while temp_stack_one_skill:
-            main_stack_one_skill.append(temp_stack_one_skill.pop())
+        while stack_1skill and stack_1skill[-1][2] > submission_time:
+            temp.append(stack_1skill.pop())
+        stack_1skill.append((applicant, score, submission_time))
+        while temp:
+            stack_1skill.append(temp.pop())
     
-    # Get recommended applicants
-    recommended_applicants_both_skills = [applicant for applicant, _, _ in main_stack_both_skills]
-    recommended_applicants_one_skill = [applicant for applicant, _, _ in main_stack_one_skill]
+    #Assigns the shortlisted applicants to the recommended_applicants list
+    recommended_applicants_both_skills = [applicant for applicant, _, _ in stack_2skills]
+    recommended_applicants_one_skill = [applicant for applicant, _, _ in stack_1skill]
     
     return recommended_applicants_both_skills, recommended_applicants_one_skill

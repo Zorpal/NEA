@@ -1,9 +1,8 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState } from "react";
 import Authorisedroute from "../components/Authorisedroute";
 import api from "../api";
 import { Modal, Button, Form } from "react-bootstrap";
 import ReCAPTCHA from "react-google-recaptcha";
-import ApplicantContext from "../context/ApplicantContext";
 
 //function to display the profile of an applicant
 const ApplicantProfile = () => {
@@ -11,7 +10,7 @@ const ApplicantProfile = () => {
   const [showModal, setShowModal] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [captchaToken, setCaptchaToken] = useState(null);
-  const { userinformation } = useContext(ApplicantContext);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     getApplicantDetails();
@@ -112,19 +111,24 @@ const ApplicantProfile = () => {
     setShowModal(false);
     setDeleteId(null);
     setCaptchaToken(null);
+    setConfirmDelete(false);
   };
 
   const handleModalSubmit = () => {
-    if (deleteId !== null && captchaToken) {
+    if (deleteId !== null && captchaToken && confirmDelete) {
       deleteApplicantDetails(deleteId);
       handleModalClose();
     } else {
-      alert("Please complete the CAPTCHA");
+      alert("Please complete the CAPTCHA and confirm deletion");
     }
   };
 
   const handleCaptchaChange = (token) => {
     setCaptchaToken(token);
+  };
+
+  const handleConfirmDeleteChange = (e) => {
+    setConfirmDelete(e.target.checked);
   };
 
   return (
@@ -165,7 +169,7 @@ const ApplicantProfile = () => {
                       className="btn btn-danger mt-3"
                       onClick={() => handleDeleteClick(details.id)}
                     >
-                      Delete
+                      Withdraw Application
                     </button>
                   </div>
                 </div>
@@ -229,13 +233,21 @@ const ApplicantProfile = () => {
 
       <Modal show={showModal} onHide={handleModalClose}>
         <Modal.Header closeButton>
-          <Modal.Title>Verify CAPTCHA</Modal.Title>
+          <Modal.Title>Verification</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <ReCAPTCHA
             sitekey="6LfpyZYqAAAAAM-7ZypwZrDKblkTZWUCTQ6aPjJA"
             onChange={handleCaptchaChange}
           />
+          <Form.Check 
+            type="checkbox" 
+            label="I understand that my details will be removed and cannot be recovered" 
+            checked={confirmDelete}
+            onChange={handleConfirmDeleteChange}
+            className="mt-3"
+          />
+          <p className="text-muted">Withdrawing your application removes your details but does NOT remove your account, if you wish to delete your account please contact our support team!</p>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleModalClose}>

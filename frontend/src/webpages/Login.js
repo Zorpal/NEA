@@ -57,11 +57,16 @@ const Login = () => {
     e.preventDefault();
     completelogin();
   };
+
   const encryptpassword = (text, shift) => {
     return text.split('').map(char => {
       const code = char.charCodeAt(0);
       return String.fromCharCode(code + shift);
     }).join('');
+  };
+
+  const handleForgotPassword = () => {
+    navigate("/resetpassword/");
   };
 
   //renders the login form, and a sign in with google button 
@@ -96,6 +101,11 @@ const Login = () => {
       <div className="mt-3 text-center">
         <p>Or continue with Google</p>
         <GoogleSSO />
+      </div>
+      <div className="mt-3 text-center">
+        <button type="button" className="btn btn-link" onClick={handleForgotPassword}>
+          Forgot Password
+        </button>
       </div>
     </form>
   );
