@@ -70,7 +70,7 @@ const ListApplicants = () => {
   // Function to update the recruitment tracker to stage 5 once contacted
   const markAsContacted = async (email) => {
     try {
-      await api.post("/applicant/update-contacted-applicant/", { email });
+      await api.post("/applicant/updatert/", { email, recruitmenttracker: 5 });
       alert("Applicant marked as contacted");
       getApplicantsToContact();
     } catch (error) {

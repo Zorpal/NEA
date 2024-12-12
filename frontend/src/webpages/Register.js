@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import ReCAPTCHA from "react-google-recaptcha";
 
-//function to allow an applicant to register. Employees must be registered on the django-admin page, or they can register here and have their permissions set to is_staff = true at a later date
+// Function to allow an applicant to register. Employees must be registered on the django-admin page, or they can register here and have their permissions set to is_staff = true at a later date
 const Register = () => {
   const [register, setRegister] = useState({ username: "", password: "", email: "" });
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
   const [passwordError, setPasswordError] = useState("");
+  const [captchaToken, setCaptchaToken] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const isPasswordValid = validatePassword(register.password);
-    setIsSubmitDisabled(register.password !== confirmPassword || !isPasswordValid);
-  }, [register.password, confirmPassword]);
+    setIsSubmitDisabled(register.password !== confirmPassword || !isPasswordValid || !captchaToken);
+  }, [register.password, confirmPassword, captchaToken]);
 
-  //this makes sure the password has at least 1 symbol, number and must be at least 8 characters long.
+  // This makes sure the password has at least 1 symbol, number and must be at least 8 characters long.
   const validatePassword = (password) => {
     const hasNumber = /\d/.test(password);
     const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password);
@@ -42,7 +44,7 @@ const Register = () => {
 
   const fetchRegister = async () => {
     const usernamelength = register.username.length;
-    const encryptedPassword = encryptpassword(register.password, usernamelength); //this password is shifted using a caesar shift that shifts based on the length of the username
+    const encryptedPassword = encryptpassword(register.password, usernamelength); // This password is shifted using a caesar shift that shifts based on the length of the username
     const response = await fetch("/applicant/register/", {
       method: "POST",
       headers: {
@@ -57,7 +59,7 @@ const Register = () => {
     }
   };
 
-  //encrypts the user's password with a caesar shift based on the length of the username
+  // Encrypts the user's password with a caesar shift based on the length of the username
   const encryptpassword = (text, shift) => {
     return text.split('').map(char => {
       const code = char.charCodeAt(0);
@@ -74,6 +76,10 @@ const Register = () => {
       fetchRegister();
     }
     form.classList.add("was-validated");
+  };
+
+  const handleCaptchaChange = (token) => {
+    setCaptchaToken(token);
   };
 
   return (
@@ -151,6 +157,12 @@ const Register = () => {
         <div className="invalid-feedback">
           Please confirm your password.
         </div>
+      </div>
+      <div className="mb-3">
+        <ReCAPTCHA
+          sitekey="6LfpyZYqAAAAAM-7ZypwZrDKblkTZWUCTQ6aPjJA"
+          onChange={handleCaptchaChange}
+        />
       </div>
       <button type="submit" className="btn btn-primary" disabled={isSubmitDisabled}>
         Register

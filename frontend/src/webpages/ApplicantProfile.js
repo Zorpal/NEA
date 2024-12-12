@@ -7,6 +7,7 @@ import ReCAPTCHA from "react-google-recaptcha";
 //function to display the profile of an applicant
 const ApplicantProfile = () => {
   const [applicantDetails, setApplicantDetails] = useState([]);
+  const [jobDetails, setJobDetails] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
   const [captchaToken, setCaptchaToken] = useState(null);
@@ -46,7 +47,20 @@ const ApplicantProfile = () => {
       .then((res) => res.data)
       .then((data) => {
         setApplicantDetails(data);
-        console.log(data);
+        if (data.length > 0 && data[0].recruitmenttracker >= 3) {
+          getJobDetails(data[0].id);
+        }
+      })
+      .catch((err) => alert(err));
+  };
+
+  //function to get the job details based on the applicant ID
+  const getJobDetails = async (applicantId) => {
+    api
+      .get(`/Jobs/recommendeddetails/${applicantId}/`)
+      .then((res) => res.data)
+      .then((data) => {
+        setJobDetails(data);
       })
       .catch((err) => alert(err));
   };
@@ -209,17 +223,25 @@ const ApplicantProfile = () => {
                   <div className="card-body">
                     <h5 className="card-title">Progress Center</h5>
                     <p className="card-text">{trackerText}</p>
-                    {details.recruitmenttracker === 3 && (
+                    {details.recruitmenttracker >= 3 && jobDetails && (
                       <div className="card mt-3">
                         <div className="card-body">
                           <h5 className="card-title">Recommended Job</h5>
-                          <p className="card-text">{details.recommended_job_title}</p>
-                          <button
-                            className="btn btn-success"
-                            onClick={() => acceptJob(details.recommended_job_title, details.email)}
-                          >
-                            Inquire more about this job
-                          </button>
+                          <p className="card-text"><strong>Job Title:</strong> {jobDetails.jobtitle}</p>
+                          <p className="card-text"><strong>Company:</strong> {jobDetails.companyname}</p>
+                          <p className="card-text"><strong>Salary:</strong> £{jobDetails.salary}</p>
+                          <p className="card-text"><strong>Description:</strong> {jobDetails.jobdescription}</p>
+                          <p className="card-text"><strong>Location:</strong> {jobDetails.location}</p>
+                          <p className="card-text"><strong>Job Type:</strong> {jobDetails.jobtype}</p>
+                          <p className="card-text"><strong>Deadline:</strong> {jobDetails.deadline}</p>
+                          {details.recruitmenttracker === 3 && (
+                            <button
+                              className="btn btn-success"
+                              onClick={() => acceptJob(jobDetails.jobtitle, details.email)}
+                            >
+                              Inquire more about this job
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}

@@ -79,6 +79,17 @@ class JobDetails(models.Model):
         ('Nursing', 'Nursing'),
     ])
 
+class JobRecommendation(models.Model):
+    applicant = models.ForeignKey(ApplicantDetails, on_delete=models.CASCADE)
+    job = models.ForeignKey(JobDetails, on_delete=models.CASCADE)
+    recommended_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('applicant', 'job')
+
+    def __str__(self):
+        return f"{self.applicant.fullname} - {self.job.jobtitle}"
+
     def __str__(self):
         return self.jobtitle
 

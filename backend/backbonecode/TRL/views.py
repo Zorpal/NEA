@@ -18,7 +18,6 @@ from datetime import datetime
 from django.conf import settings
 import requests
 from django.core.mail import send_mail
-import random
 
 
 #Created a superclass with a method to execute queries by taking in the query and parameters 
@@ -32,16 +31,30 @@ class QueryandemailClass(APIView):
             with self.__connection.cursor() as cursor:
                 cursor.execute(query, params)
                 return cursor.fetchall(), cursor.description
-        except Exception as error:
-            print(f"Database error: {error}")
+        except Exception as caughterror:
+            print(f"error: {caughterror}")
             return None, None
 
-    def query(self, query, params):
+    def _query(self, query, params):
         return self.__executequery(query, params)
-    #protected method to send an email to the applicant when there has been a change in the recruitmenttracker value
-    def _notifyapplicant(self, email):
-        subject = 'Recruitment Tracker Update'
-        message = 'Dear Applicant,\n\nThere has been an update on the status of your application. Please log in to your account to view the changes.\n\nTRL Administration\n'
+    
+    #Privated method to send an email to the applicant when there has been a change in the recruitmenttracker value
+    def __notifyapplicant(self, email):
+        subject = 'Update on your application'
+        
+        name, _ = self._query('SELECT fullname FROM TRL_applicantdetails WHERE email = %s', [email])
+        if name:
+            fullname = name[0][0]
+        else:
+            fullname = 'Applicant'
+        
+        message = f'''
+    Dear {fullname},
+        
+    There has been an update on the status of your application. Please log in to your account to view the changes.
+        
+    TRL Administration'''
+        
         emailfrom = settings.DEFAULT_FROM_EMAIL
         emailto = [email]
 
@@ -49,6 +62,9 @@ class QueryandemailClass(APIView):
             send_mail(subject, message, emailfrom, emailto)
         except Exception as caughterror:
             return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def notifyapplicant(self, email):
+        return self.__notifyapplicant(email)
 
 
     
@@ -59,7 +75,7 @@ class JobView(QueryandemailClass):
 #post method to insert a new job in the database
     def post(self, request):
         data = request.data
-        cursor = self.query('''
+        cursor = self._query('''
             INSERT INTO TRL_jobdetails (jobtitle, companyname, salary, jobdescription, dateposted, location, jobtype, deadline, jobprimaryskill, jobsecondaryskill)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', [
@@ -86,7 +102,7 @@ class JobView(QueryandemailClass):
             return self.get_job_list()
 #get method to list all jobs in the database
     def get_job_list(self):
-        rows, description = self.query('SELECT * FROM TRL_jobdetails', [])
+        rows, description = self._query('SELECT * FROM TRL_jobdetails', [])
         if rows is not None:
             columns = [col[0] for col in description]
             results = [dict(zip(columns, row)) for row in rows]
@@ -95,11 +111,30 @@ class JobView(QueryandemailClass):
 
 #get method to return a specific job in the database
     def get_job_detail(self, pk):
-        rows, description = self.query('SELECT * FROM TRL_jobdetails WHERE id = %s', [pk])
+        rows, description = self._query('SELECT * FROM TRL_jobdetails WHERE id = %s', [pk])
         if rows:
             columns = [col[0] for col in description]
             return Response(dict(zip(columns, rows[0])))
         return Response(status=status.HTTP_404_NOT_FOUND)
+
+class RecommendedJobDetails(QueryandemailClass):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, id):
+        try:
+            rows, description = self._query('''
+                SELECT TRL_jobdetails.*
+                FROM TRL_jobdetails
+                JOIN TRL_jobrecommendation ON TRL_jobdetails.id = TRL_jobrecommendation.job_id
+                WHERE TRL_jobrecommendation.applicant_id = %s
+            ''', [id])
+            if rows:
+                columns = [col[0] for col in description]
+                job_details = dict(zip(columns, rows[0]))
+                return Response(job_details, status=status.HTTP_200_OK)
+            return Response({'error': 'Job details not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as caughterror:
+            return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #class inheriting the QueryandemailClass method, this class houses the get post and delete methods for the ApplicantDetails table
 class Applicantdetails(QueryandemailClass):
@@ -110,7 +145,7 @@ class Applicantdetails(QueryandemailClass):
     def get(self, request):
         user = request.user
         try:
-            query = '''
+            rows, description = self._query('''
                 SELECT TRL_applicantdetails.*, 
                 GROUP_CONCAT(TRL_skill.name) as skills
                 FROM TRL_applicantdetails
@@ -118,8 +153,7 @@ class Applicantdetails(QueryandemailClass):
                 LEFT JOIN TRL_skill ON TRL_applicantskill.skill_id = TRL_skill.id
                 WHERE TRL_applicantdetails.email = %s
                 GROUP BY TRL_applicantdetails.id
-                '''
-            rows, description = self.query(query, [user.email])
+                ''', [user.email])
             if rows is not None:
                 columns = [col[0] for col in description]
                 results = [dict(zip(columns, row)) for row in rows]
@@ -140,7 +174,7 @@ class Applicantdetails(QueryandemailClass):
 
 #try except statement to insert the inputted data into the table, but in case some of the data is not present or in case there is the same email in the table, it will update the other values in the database
         try:
-            self.query('''
+            self._query('''
             INSERT INTO TRL_applicantdetails (fullname, email, phonenumber, qualifications, preferences, cv, recruitmenttracker, timestamp)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (email) DO UPDATE SET
@@ -162,14 +196,13 @@ class Applicantdetails(QueryandemailClass):
             data.get('timestamp'),
             ])
             #makes sure that there is no previous email that is the same as the one inputted
-            self.query('DELETE FROM TRL_applicantskill WHERE applicant_email = %s', [data.get('email')])
+            self._query('DELETE FROM TRL_applicantskill WHERE applicant_email = %s', [data.get('email')])
             #creates a list of the skills inputted by the user
             skills = [data.get('skill_1'), data.get('skill_2'), data.get('skill_3'), data.get('skill_4'), data.get('skill_5')]
             for skill_name in skills:
                 if skill_name:
                     skill_id = self.getskill(skill_name)
-                    self.query('INSERT INTO TRL_applicantskill (applicant_email, skill_id) VALUES (%s, %s)', [data.get('email'), skill_id])
-
+                    self._query('INSERT INTO TRL_applicantskill (applicant_email, skill_id) VALUES (%s, %s)', [data.get('email'), skill_id])
             return Response(status=status.HTTP_201_CREATED)
         except Exception as caughterror:
             return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -177,11 +210,11 @@ class Applicantdetails(QueryandemailClass):
 #get method to return the id of skills 
     def getskill(self, skill_name):
         skill_id = None
-        rows, _ = self.query('SELECT id FROM TRL_skill WHERE name = %s', [skill_name])
+        rows, _ = self._query('SELECT id FROM TRL_skill WHERE name = %s', [skill_name])
         if rows:
             skill_id = rows[0][0]
         else:
-            rows, _ = self.query('INSERT INTO TRL_skill (name) VALUES (%s) RETURNING id', [skill_name])
+            rows, _ = self._query('INSERT INTO TRL_skill (name) VALUES (%s) RETURNING id', [skill_name])
             skill_id = rows[0][0]
         return skill_id
 
@@ -207,7 +240,7 @@ class FilteredApplicantDetails(QueryandemailClass):
 
     def get(self, request, email):
         try:
-            rows, description = self.query('''
+            rows, description = self._query('''
                 SELECT TRL_applicantdetails.*, 
                 GROUP_CONCAT(TRL_skill.name) as skills
                 FROM TRL_applicantdetails 
@@ -223,6 +256,7 @@ class FilteredApplicantDetails(QueryandemailClass):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as caughterror:
             return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 #class to return the list of applicant skills
 class RetrieveApplicantSkills(QueryandemailClass):
     #post method to take in the sought skills of the specific job and return the emails of applicants who have one of those skills in their details
@@ -231,7 +265,7 @@ class RetrieveApplicantSkills(QueryandemailClass):
         if not skill:
             return Response(status=status.HTTP_400_BAD_REQUEST)
         try:
-            rows, description = self.query('''
+            rows, description = self._query('''
                 SELECT DISTINCT TRL_applicantdetails.email
                 FROM TRL_applicantdetails 
                 JOIN TRL_applicantskill ON TRL_applicantdetails.email = TRL_applicantskill.applicant_email
@@ -244,11 +278,88 @@ class RetrieveApplicantSkills(QueryandemailClass):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as caughterror:
             return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class Applicantstatistics(QueryandemailClass):
+    permission_classes = [IsAuthenticated]
 
+    def get(self, request):
+        try:
+            #gets the total number of applicants that have applied, using aggregate function COUNT(*)
+            totalnumofapplicants, _ = self._query('SELECT COUNT(*) FROM TRL_applicantdetails', [])
+
+            #gets the average recruitment tracker value (rtvalue) of all applicants using an aggregate function AVG()
+            averagertvalue, _ = self._query('SELECT AVG(recruitmenttracker) FROM TRL_applicantdetails', [])
+
+            #gets how many applicants are in each recruitment tracker stage through the aggregate function COUNT(*)
+            distributionofrtstages, _ = self._query('''
+                SELECT recruitmenttracker, COUNT(*) 
+                FROM TRL_applicantdetails 
+                GROUP BY recruitmenttracker
+            ''', [])
+
+            data = {
+                'totalnumofapplicants': totalnumofapplicants[0][0] if totalnumofapplicants else 0,
+                'averagertvalue': averagertvalue[0][0] if averagertvalue else 0,
+                'distributionofrtstages': {row[0]: row[1] for row in distributionofrtstages}
+            }
+
+            return Response(data, status=status.HTTP_200_OK)
+        except Exception as caughterror:
+            return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+#class to filter applicants based on their skills that match to a job (uses code in filterapplicants.py)
+class RecommendApplicanttoJob(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, job_id):
+        recommendations_both_skills, recommendations_one_skill = filterapplicant(job_id)
+        return Response({
+            'recommendations_both_skills': recommendations_both_skills,
+            'recommendations_one_skill': recommendations_one_skill
+        })
+
+#class to return a list of all applicants and their details in the database
+class ListApplicants(QueryandemailClass):
+    #ensures the logged in user is an employee
+    permission_classes=[IsAdminUser]
+    #get method to return all details of all applicants, also retrieves the skills of each applicant by concatenating them into a single string
+    def get(self, request):
+        try:
+            rows, description = self._query('''
+            SELECT TRL_applicantdetails.*,
+            GROUP_CONCAT(TRL_skill.name) as skills FROM TRL_applicantdetails 
+            LEFT JOIN TRL_applicantskill ON TRL_applicantdetails.email = TRL_applicantskill.applicant_email 
+            LEFT JOIN TRL_skill ON TRL_applicantskill.skill_id = TRL_skill.id 
+            GROUP BY TRL_applicantdetails.id, TRL_applicantdetails.fullname, TRL_applicantdetails.email, TRL_applicantdetails.phonenumber, TRL_applicantdetails.qualifications, TRL_applicantdetails.preferences, TRL_applicantdetails.cv, TRL_applicantdetails.recruitmenttracker
+            ''', [])
+            if rows is not None:
+                columns = [col[0] for col in description]
+                results = [dict(zip(columns, row)) for row in rows]
+                return Response(results)
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as caughterror:
+            return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#class to download an applicant's cv stored on the server
+class DownloadCV(QueryandemailClass):
+    def get(self, request, id):
+        try:
+            rows, _ = self.query('SELECT cv FROM TRL_applicantdetails WHERE id = %s', [id])
+            if rows:
+                file_path = rows[0][0]
+                if file_path and os.path.exists(file_path):
+                    with open(file_path, 'rb') as cv:
+                        response = HttpResponse(cv.read(), content_type="application/octet-stream")
+                        response['Content-Disposition'] = 'inline; filename=' + os.path.basename(file_path)
+                        return response
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        except Exception as caughterror:
+            return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 #class to update the recruitment tracker value, imitates a dynamic tracker for the applicant
 class UpdateRecruitmentTracker(QueryandemailClass):
     permission_classes = [IsAuthenticated]
-    #post method to update the recruitment tracker value
+
     def post(self, request):
         email = request.data.get('email')
         tracker_value = request.data.get('recruitmenttracker')
@@ -256,20 +367,73 @@ class UpdateRecruitmentTracker(QueryandemailClass):
 
         try:
             # Update the recruitment tracker value
-            self.query('UPDATE TRL_applicantdetails SET recruitmenttracker = %s WHERE email = %s', [tracker_value, email])
+            self._query('UPDATE TRL_applicantdetails SET recruitmenttracker = %s WHERE email = %s', [tracker_value, email])
 
             if tracker_value == 3 and job_id:
-                # Update job details if tracker value is 3 and job_id is provided
-                self.query('UPDATE TRL_jobdetails SET some_field = some_value WHERE id = %s', [job_id])
+                # Inserts the id of the recommended job into the jobrecommendation table
+                applicant_id, _ = self._query('SELECT id FROM TRL_applicantdetails WHERE email = %s', [email])
+                if applicant_id:
+                    self._query('INSERT INTO TRL_jobrecommendation (applicant_id, job_id, recommended_at) VALUES (%s, %s, CURRENT_TIMESTAMP)', [applicant_id[0][0], job_id])
 
-            if tracker_value == 4:
-                job_title = request.data.get('job_title')
-                self.query('UPDATE TRL_applicantdetails SET accepted_job_title = %s WHERE email = %s', [job_title, email])
-            self._notifyapplicant(email)
+                # Send email with job details
+                applicant_rows, applicant_description = self._query('SELECT * FROM TRL_applicantdetails WHERE email = %s', [email])
+                job_rows, job_description = self._query('SELECT * FROM TRL_jobdetails WHERE id = %s', [job_id])
+
+                if applicant_rows and job_rows:
+                    applicant = dict(zip([col[0] for col in applicant_description], applicant_rows[0]))
+                    job = dict(zip([col[0] for col in job_description], job_rows[0]))
+                    self.send_job_recommendation_email(applicant, job)
+
+            self.notifyapplicant(email)
             return Response(status=status.HTTP_200_OK)
         except Exception as caughterror:
             return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    def send_job_recommendation_email(self, applicant, job):
+        subject = 'Job Recommendation'
+        message = f'''
+        Dear {applicant['fullname']},
+
+        We have found a job that matches your skills:
+        
+        Job Title: {job['jobtitle']}
+        Company: {job['companyname']}
+        Salary: £{job['salary']}
+        Description: {job['jobdescription']}
+        Location: {job['location']}
+        Job Type: {job['jobtype']}
+        Deadline: {job['deadline']}
+
+        Please log in to your account to view more details.
+
+        Best regards,
+        TRL Administration
+        '''
+        emailfrom = settings.DEFAULT_FROM_EMAIL
+        emailto = [applicant['email']]
+
+        try:
+            send_mail(subject, message, emailfrom, emailto)
+        except Exception as caughterror:
+            print(f"Error sending email: {caughterror}")
+
+class ApplicantsToContact(QueryandemailClass):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        try:
+            rows, description = self._query('''
+            SELECT TRL_applicantdetails.fullname, TRL_applicantdetails.email
+            FROM TRL_applicantdetails 
+            WHERE TRL_applicantdetails.recruitmenttracker = 4
+            ''', [])
+            if rows is not None:
+                columns = [col[0] for col in description]
+                results = [dict(zip(columns, row)) for row in rows]
+                return Response(results)
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as caughterror:
+            return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 #class inheriting from QueryandemailClass which allows users to sign in with google
 #To do this I have created a web application on google cloud console that allows google users to interface with my frontend and backend server, hence why i have a client secret json file to access this
@@ -292,7 +456,7 @@ class GoogleSSO(QueryandemailClass):
         if rows:
             user_id = rows[0][0]
         else:
-            rows, description = self.query('''
+            rows, description = self._query('''
                 INSERT INTO auth_user (username, email, password, is_superuser, is_staff, is_active, date_joined, first_name, last_name)
                 VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s, %s)
                 RETURNING id
@@ -320,7 +484,7 @@ class Register(QueryandemailClass):
         password = data.get('password')
         email = data.get('email')
         hashed_password = make_password(password) #hashed password using an SHA_256 digest
-        cursor = self.query('''
+        cursor = self._query('''
             INSERT INTO auth_user (username, password, is_superuser, is_staff, is_active, date_joined, first_name, last_name, email)
             VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s, %s, %s)
         ''', [username, hashed_password, False, False, True, '', '', email])
@@ -328,21 +492,12 @@ class Register(QueryandemailClass):
             return Response(status=status.HTTP_201_CREATED)
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-#class to filter applicants based on their skills that match to a job (uses code in filterapplicants.py)
-class RecommendApplicanttoJob(APIView):
-    permission_classes = [IsAdminUser]
 
-    def get(self, request, job_id):
-        recommendations_both_skills, recommendations_one_skill = filterapplicant(job_id)
-        return Response({
-            'recommendations_both_skills': recommendations_both_skills,
-            'recommendations_one_skill': recommendations_one_skill
-        })
 class RetrieveStaffStatus(QueryandemailClass):
     #get method to return the is_staff attribute of the logged in user
     def get(self, request):
         user = request.user
-        rows, _ = self.query('SELECT username, email, is_staff FROM auth_user WHERE id = %s', [user.id])
+        rows, _ = self._query('SELECT username, email, is_staff FROM auth_user WHERE id = %s', [user.id])
         if rows:
             username, email, is_staff = rows[0]
             return Response({
@@ -351,79 +506,7 @@ class RetrieveStaffStatus(QueryandemailClass):
                 'email': email
             })
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-#class to return a list of all applicants and their details in the database
-class ListApplicants(QueryandemailClass):
-    #ensures the logged in user is an employee
-    permission_classes=[IsAdminUser]
-    #get method to return all details of all applicants, also retrieves the skills of each applicant by concatenating them into a single string
-    def get(self, request):
-        try:
-            rows, description = self.query('''
-            SELECT TRL_applicantdetails.*,
-            GROUP_CONCAT(TRL_skill.name) as skills FROM TRL_applicantdetails 
-            LEFT JOIN TRL_applicantskill ON TRL_applicantdetails.email = TRL_applicantskill.applicant_email 
-            LEFT JOIN TRL_skill ON TRL_applicantskill.skill_id = TRL_skill.id 
-            GROUP BY TRL_applicantdetails.id, TRL_applicantdetails.fullname, TRL_applicantdetails.email, TRL_applicantdetails.phonenumber, TRL_applicantdetails.qualifications, TRL_applicantdetails.preferences, TRL_applicantdetails.cv, TRL_applicantdetails.recruitmenttracker
-            ''', [])
-            if rows is not None:
-                columns = [col[0] for col in description]
-                results = [dict(zip(columns, row)) for row in rows]
-                return Response(results)
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except Exception as caughterror:
-            return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-#class to download an applicant's cv stored on the server
-class DownloadCV(QueryandemailClass):
-    def get(self, request, id):
-        try:
-            applicant = ApplicantDetails.objects.get(id=id)
-            file_path = applicant.cv.path
-            if os.path.exists(file_path):
-                with open(file_path, 'rb') as cv:
-                    response = HttpResponse(cv.read(), content_type="application/octet-stream")
-                    response['Content-Disposition'] = 'inline; filename=' + os.path.basename(file_path)
-                    return response
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        except ApplicantDetails.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        except FileNotFoundError:
-            return Response(status=status.HTTP_404_NOT_FOUND)
         
-class ApplicantsToContact(QueryandemailClass):
-    permission_classes = [IsAdminUser]
-
-    def get(self, request):
-        try:
-            rows, description = self.query('''
-            SELECT TRL_applicantdetails.fullname, TRL_applicantdetails.email
-            FROM TRL_applicantdetails 
-            WHERE TRL_applicantdetails.recruitmenttracker = 4
-            ''', [])
-            if rows is not None:
-                columns = [col[0] for col in description]
-                results = [dict(zip(columns, row)) for row in rows]
-                return Response(results)
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except Exception as caughterror:
-            return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-class UpdateContactedApplicant(QueryandemailClass):
-
-    def post(self, request):
-        email = request.data.get('email')
-        try:
-            rows, _ = self.query('UPDATE TRL_applicantdetails SET recruitmenttracker = 5 WHERE email = %s', [email])
-            if rows is not None:
-                self._notifyapplicant(email)
-                return Response(status=status.HTTP_200_OK)
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        except Exception as caughterror:
-            return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    
 
 class VerifyCaptcha(APIView):
     def post(self, request):
@@ -444,31 +527,5 @@ class VerifyCaptcha(APIView):
         else:
             return Response({'error': 'CAPTCHA Invalid...'}, status=status.HTTP_400_BAD_REQUEST)
 
-class Applicantstatistics(QueryandemailClass):
-    permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        try:
-            #gets the total number of applicants that have applied, using aggregate function COUNT(*)
-            totalnumofapplicants, _ = self.query('SELECT COUNT(*) FROM TRL_applicantdetails', [])
-
-            #gets the average recruitment tracker value (rtvalue) of all applicants using an aggregate function AVG()
-            averagertvalue, _ = self.query('SELECT AVG(recruitmenttracker) FROM TRL_applicantdetails', [])
-
-            #gets how many applicants are in each recruitment tracker stage through the aggregate function COUNT(*)
-            distributionofrtstages, _ = self.query('''
-                SELECT recruitmenttracker, COUNT(*) 
-                FROM TRL_applicantdetails 
-                GROUP BY recruitmenttracker
-            ''', [])
-
-            data = {
-                'totalnumofapplicants': totalnumofapplicants[0][0] if totalnumofapplicants else 0,
-                'averagertvalue': averagertvalue[0][0] if averagertvalue else 0,
-                'distributionofrtstages': {row[0]: row[1] for row in distributionofrtstages}
-            }
-
-            return Response(data, status=status.HTTP_200_OK)
-        except Exception as caughterror:
-            return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
