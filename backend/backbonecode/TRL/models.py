@@ -91,5 +91,5 @@ class JobRecommendation(models.Model):
         return f"{self.applicant.fullname} - {self.job.jobtitle}"
 
     def __str__(self):
-        return self.jobtitle
+        return self.job.jobtitle
 

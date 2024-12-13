@@ -18,14 +18,23 @@ from datetime import datetime
 from django.conf import settings
 import requests
 from django.core.mail import send_mail
+from abc import ABC, abstractmethod
 
-
-#Created a superclass with a method to execute queries by taking in the query and parameters 
+# Created a superclass with a method to execute queries by taking in the query and parameters 
 class QueryandemailClass(APIView):
     def __init__(self):
         self.__connection = connection
+        self.__emailfrom = settings.DEFAULT_FROM_EMAIL
+        self.__fullname = ''
+        self.__subject = 'Update on your application'
+        self.__message = '''
+        Dear {fullname},
+        
+        There has been an update on the status of your application. Please log in to your account to view the changes.
+        
+        TRL Administration'''
 
-#Privated method to execute an SQL query to help prevent against direct access to the execute query method
+    # Private method to execute an SQL query to help prevent against direct access to the execute query method
     def __executequery(self, query, params):
         try:
             with self.__connection.cursor() as cursor:
@@ -38,40 +47,37 @@ class QueryandemailClass(APIView):
     def _query(self, query, params):
         return self.__executequery(query, params)
     
-    #Privated method to send an email to the applicant when there has been a change in the recruitmenttracker value
-    def __notifyapplicant(self, email):
-        subject = 'Update on your application'
+    # Private method to send an email to the applicant when there has been a change in the recruitmenttracker value
+    def __notifyapplicant(self, email, message=None):
         
         name, _ = self._query('SELECT fullname FROM TRL_applicantdetails WHERE email = %s', [email])
         if name:
-            fullname = name[0][0]
-        else:
-            fullname = 'Applicant'
+            self.__fullname = name[0][0]
         
-        message = f'''
-    Dear {fullname},
-        
-    There has been an update on the status of your application. Please log in to your account to view the changes.
-        
-    TRL Administration'''
-        
-        emailfrom = settings.DEFAULT_FROM_EMAIL
+        messagetosend = message or self.__message.format(fullname=self.__fullname)
         emailto = [email]
 
         try:
-            send_mail(subject, message, emailfrom, emailto)
+            send_mail(self.__subject, messagetosend, self.__emailfrom, emailto)
         except Exception as caughterror:
             return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-    def notifyapplicant(self, email):
-        return self.__notifyapplicant(email)
-
+    def _notifyapplicant(self, email, custom_message=None):
+        return self.__notifyapplicant(email, custom_message)
+    
+    @abstractmethod
+    def get(self, request):
+        pass
+    
+    @abstractmethod
+    def post(self, request):
+        pass
 
     
 #class for getting and posting a job, inherits from QueryandemailClass
 class JobView(QueryandemailClass):
     permission_classes = [AllowAny]
-
+       
 #post method to insert a new job in the database
     def post(self, request):
         data = request.data
@@ -135,6 +141,9 @@ class RecommendedJobDetails(QueryandemailClass):
             return Response({'error': 'Job details not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as caughterror:
             return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def post(self, request):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 #class inheriting the QueryandemailClass method, this class houses the get post and delete methods for the ApplicantDetails table
 class Applicantdetails(QueryandemailClass):
@@ -256,28 +265,10 @@ class FilteredApplicantDetails(QueryandemailClass):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as caughterror:
             return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-#class to return the list of applicant skills
-class RetrieveApplicantSkills(QueryandemailClass):
-    #post method to take in the sought skills of the specific job and return the emails of applicants who have one of those skills in their details
+    
     def post(self, request):
-        skill = request.data.get('skill')
-        if not skill:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        try:
-            rows, description = self._query('''
-                SELECT DISTINCT TRL_applicantdetails.email
-                FROM TRL_applicantdetails 
-                JOIN TRL_applicantskill ON TRL_applicantdetails.email = TRL_applicantskill.applicant_email
-                JOIN TRL_skill ON TRL_applicantskill.skill_id = TRL_skill.id
-                WHERE TRL_skill.name = %s
-            ''', [skill])
-            if rows is not None:
-                emails = [row[0] for row in rows]
-                return Response({'emails': emails})
-            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except Exception as caughterror:
-            return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        
         
 class Applicantstatistics(QueryandemailClass):
     permission_classes = [IsAuthenticated]
@@ -306,6 +297,9 @@ class Applicantstatistics(QueryandemailClass):
             return Response(data, status=status.HTTP_200_OK)
         except Exception as caughterror:
             return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def post(self, request):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
         
 #class to filter applicants based on their skills that match to a job (uses code in filterapplicants.py)
 class RecommendApplicanttoJob(APIView):
@@ -317,11 +311,14 @@ class RecommendApplicanttoJob(APIView):
             'recommendations_both_skills': recommendations_both_skills,
             'recommendations_one_skill': recommendations_one_skill
         })
+    
+    def post(self, request):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 #class to return a list of all applicants and their details in the database
 class ListApplicants(QueryandemailClass):
     #ensures the logged in user is an employee
-    permission_classes=[IsAdminUser]
+    permission_classes=[IsAuthenticated]
     #get method to return all details of all applicants, also retrieves the skills of each applicant by concatenating them into a single string
     def get(self, request):
         try:
@@ -339,12 +336,15 @@ class ListApplicants(QueryandemailClass):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as caughterror:
             return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def post(self, request):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 #class to download an applicant's cv stored on the server
 class DownloadCV(QueryandemailClass):
     def get(self, request, id):
         try:
-            rows, _ = self.query('SELECT cv FROM TRL_applicantdetails WHERE id = %s', [id])
+            rows, _ = self._query('SELECT cv FROM TRL_applicantdetails WHERE id = %s', [id])
             if rows:
                 file_path = rows[0][0]
                 if file_path and os.path.exists(file_path):
@@ -355,6 +355,9 @@ class DownloadCV(QueryandemailClass):
             return Response(status=status.HTTP_404_NOT_FOUND)
         except Exception as caughterror:
             return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def post(self, request):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
         
 #class to update the recruitment tracker value, imitates a dynamic tracker for the applicant
 class UpdateRecruitmentTracker(QueryandemailClass):
@@ -362,60 +365,46 @@ class UpdateRecruitmentTracker(QueryandemailClass):
 
     def post(self, request):
         email = request.data.get('email')
-        tracker_value = request.data.get('recruitmenttracker')
-        job_id = request.data.get('job_id')
+        rtvalue = request.data.get('recruitmenttracker')
+        jobid = request.data.get('job_id')
 
         try:
-            # Update the recruitment tracker value
-            self._query('UPDATE TRL_applicantdetails SET recruitmenttracker = %s WHERE email = %s', [tracker_value, email])
+            self._query('UPDATE TRL_applicantdetails SET recruitmenttracker = %s WHERE email = %s', [rtvalue, email])
 
-            if tracker_value == 3 and job_id:
-                # Inserts the id of the recommended job into the jobrecommendation table
+            if rtvalue == 3 and jobid:
                 applicant_id, _ = self._query('SELECT id FROM TRL_applicantdetails WHERE email = %s', [email])
                 if applicant_id:
-                    self._query('INSERT INTO TRL_jobrecommendation (applicant_id, job_id, recommended_at) VALUES (%s, %s, CURRENT_TIMESTAMP)', [applicant_id[0][0], job_id])
+                    self._query('INSERT INTO TRL_jobrecommendation (applicant_id, job_id, recommended_at) VALUES (%s, %s, CURRENT_TIMESTAMP)', [applicant_id[0][0], jobid])
 
-                # Send email with job details
                 applicant_rows, applicant_description = self._query('SELECT * FROM TRL_applicantdetails WHERE email = %s', [email])
-                job_rows, job_description = self._query('SELECT * FROM TRL_jobdetails WHERE id = %s', [job_id])
+                job_rows, job_description = self._query('SELECT * FROM TRL_jobdetails WHERE id = %s', [jobid])
 
                 if applicant_rows and job_rows:
                     applicant = dict(zip([col[0] for col in applicant_description], applicant_rows[0]))
                     job = dict(zip([col[0] for col in job_description], job_rows[0]))
-                    self.send_job_recommendation_email(applicant, job)
 
-            self.notifyapplicant(email)
+                message = f'''
+                Dear {applicant['fullname']},
+
+                We have found a job that matches your skills:
+                    
+                Job Title: {job['jobtitle']}
+                Company: {job['companyname']}
+                Salary: £{job['salary']}
+                Description: {job['jobdescription']}
+                Location: {job['location']}
+                Job Type: {job['jobtype']}
+                Deadline: {job['deadline']}
+
+                TRL Administration
+                '''
+                self._notifyapplicant(email, message)
             return Response(status=status.HTTP_200_OK)
         except Exception as caughterror:
             return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    def send_job_recommendation_email(self, applicant, job):
-        subject = 'Job Recommendation'
-        message = f'''
-        Dear {applicant['fullname']},
-
-        We have found a job that matches your skills:
-        
-        Job Title: {job['jobtitle']}
-        Company: {job['companyname']}
-        Salary: £{job['salary']}
-        Description: {job['jobdescription']}
-        Location: {job['location']}
-        Job Type: {job['jobtype']}
-        Deadline: {job['deadline']}
-
-        Please log in to your account to view more details.
-
-        Best regards,
-        TRL Administration
-        '''
-        emailfrom = settings.DEFAULT_FROM_EMAIL
-        emailto = [applicant['email']]
-
-        try:
-            send_mail(subject, message, emailfrom, emailto)
-        except Exception as caughterror:
-            print(f"Error sending email: {caughterror}")
+    
+    def get(self, request):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 class ApplicantsToContact(QueryandemailClass):
     permission_classes = [IsAdminUser]
@@ -434,6 +423,9 @@ class ApplicantsToContact(QueryandemailClass):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as caughterror:
             return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def post(self, request):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 #class inheriting from QueryandemailClass which allows users to sign in with google
 #To do this I have created a web application on google cloud console that allows google users to interface with my frontend and backend server, hence why i have a client secret json file to access this
@@ -463,6 +455,9 @@ class GoogleSSO(QueryandemailClass):
             ''', [email, email, '', False, False, True, '', ''])
             user_id = rows[0][0]
         return User.objects.get(pk=user_id)
+
+    def get(self, request):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
     
 class ServerTime(APIView):
     permission_classes = [AllowAny]
@@ -470,6 +465,9 @@ class ServerTime(APIView):
     def get(self, request):
         server_time = datetime.now()
         return Response({'server_time': server_time.strftime('%Y-%m-%d %H:%M:%S')})
+
+    def post(self, request):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 #register class to allow applicants to register with a username, password and email. By default, the is_staff attribute is set to false so they do not have employee access rights
@@ -492,6 +490,9 @@ class Register(QueryandemailClass):
             return Response(status=status.HTTP_201_CREATED)
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    def get(self, request):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
 
 class RetrieveStaffStatus(QueryandemailClass):
     #get method to return the is_staff attribute of the logged in user
@@ -506,6 +507,9 @@ class RetrieveStaffStatus(QueryandemailClass):
                 'email': email
             })
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def post(self, request):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
         
 
 class VerifyCaptcha(APIView):
@@ -526,6 +530,9 @@ class VerifyCaptcha(APIView):
             return Response({'message': 'CAPTCHA Verified!'}, status=status.HTTP_200_OK)
         else:
             return Response({'error': 'CAPTCHA Invalid...'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    def get(self, request):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
     

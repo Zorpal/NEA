@@ -19,7 +19,6 @@ urlpatterns = [
     path('retrieve-staff-status/', RetrieveStaffStatus.as_view(), name='RetrieveStaffStatus'),
     path('applicant/list/', ListApplicants.as_view(), name='ApplicantList'),
     path('updatert/', UpdateRecruitmentTracker.as_view(), name='UpdateRecruitmentTracker'),
-    path('skills/', RetrieveApplicantSkills.as_view(), name='Skills'),
     path('applicant/<int:id>/cv/', DownloadCV.as_view(), name='DownloadCV'),
     path('servertime/', ServerTime.as_view(), name='ServerTime'), 
     path('applicants-to-contact/', ApplicantsToContact.as_view(), name='ApplicantsToContact'),
