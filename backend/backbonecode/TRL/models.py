@@ -18,11 +18,19 @@ class ApplicantDetails(models.Model):
     recruitmenttracker = models.IntegerField(default=1)
     timestamp = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return self.fullname
-
 class Skill(models.Model):
-    name = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=50, unique=True, choices=[
+        ('Adult Social Care', 'Adult Social Care'),
+        ('Child Social Care', 'Child Social Care'),
+        ('Elderly Social Care', 'Elderly Social Care'),
+        ('Hospital/GP Experience', 'Hospital/GP Experience'),
+        ('Manegerial Experience', 'Manegerial Experience'),
+        ('Technological Experience', 'Technological Experience'),
+        ('Physiotherapy', 'Physiotherapy'),
+        ('Doctorate', 'Doctorate'),
+        ('Surgeon', 'Surgeon'),
+        ('Nursing', 'Nursing'),
+    ])
 
     def __str__(self):
         return self.name
@@ -79,6 +87,9 @@ class JobDetails(models.Model):
         ('Nursing', 'Nursing'),
     ])
 
+    def __str__(self):
+        return self.jobtitle
+
 class JobRecommendation(models.Model):
     applicant = models.ForeignKey(ApplicantDetails, on_delete=models.CASCADE)
     job = models.ForeignKey(JobDetails, on_delete=models.CASCADE)
@@ -89,7 +100,3 @@ class JobRecommendation(models.Model):
 
     def __str__(self):
         return f"{self.applicant.fullname} - {self.job.jobtitle}"
-
-    def __str__(self):
-        return self.job.jobtitle
-
