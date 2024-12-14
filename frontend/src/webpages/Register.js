@@ -9,6 +9,8 @@ const Register = () => {
   const [isSubmitDisabled, setIsSubmitDisabled] = useState(true);
   const [passwordError, setPasswordError] = useState("");
   const [captchaToken, setCaptchaToken] = useState(null);
+  const [usernameError, setUsernameError] = useState("");
+  const [emailError, setEmailError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -56,6 +58,14 @@ const Register = () => {
     if (response.ok) {
       navigate("/login/");
       window.location.reload();
+    } else {
+      const data = await response.json();
+      if (data.error.includes("Username already exists")) {
+        setUsernameError("Username already exists, please choose a different username.");
+      }
+      if (data.error.includes("Email already exists")) {
+        setEmailError("Email already exists, please choose a different email.");
+      }
     }
   };
 
@@ -98,6 +108,7 @@ const Register = () => {
         <div className="invalid-feedback">
           Please provide a valid username.
         </div>
+        {usernameError && <div className="alert alert-danger">{usernameError}</div>}
         <div className="form-text">
           This can be your email address or a specific name you wish to use!
         </div>
@@ -116,6 +127,7 @@ const Register = () => {
         <div className="invalid-feedback">
           Please provide a valid email address.
         </div>
+        {emailError && <div className="alert alert-danger">{emailError}</div>}
       </div>
       <div className="mb-3">
         <label htmlFor="password" className="form-label">
@@ -132,7 +144,7 @@ const Register = () => {
           {passwordError || "Please provide a valid password."}
         </div>
         <div className="form-text">
-          A strong password usually has:
+          Password must contain the following:
           <ul>
             <li>At least 8 characters</li>
             <li>At least 1 uppercase letter</li>

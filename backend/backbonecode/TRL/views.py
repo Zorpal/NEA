@@ -230,16 +230,13 @@ class Applicantdetails(QueryandemailClass):
 #delete method to remove all details of an applicant from applicantskill and applicantdetails
     def delete(self, request, pk):
         try:
-            with connection.cursor() as cursor:
-                cursor.execute('SELECT email FROM TRL_applicantdetails WHERE id = %s', [pk])
-                row = cursor.fetchone()
-                if not row:
-                    return Response(status=status.HTTP_404_NOT_FOUND)
-                applicant_email = row[0]
-                cursor.execute('DELETE FROM TRL_applicantskill WHERE applicant_email = %s', [applicant_email])
-                cursor.execute('DELETE FROM TRL_applicantdetails WHERE id = %s', [pk])
-                if cursor.rowcount == 0:
-                    return Response(status=status.HTTP_404_NOT_FOUND)
+            rows, _ = self._query('SELECT email FROM TRL_applicantdetails WHERE id = %s', [pk])
+            if not rows:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            applicant_email = rows[0][0]
+            self._query('DELETE FROM TRL_jobrecommendation WHERE applicant_id = %s', [pk])
+            self._query('DELETE FROM TRL_applicantskill WHERE applicant_email = %s', [applicant_email])
+            self._query('DELETE FROM TRL_applicantdetails WHERE id = %s', [pk])
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as caughterror:
             return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -444,7 +441,7 @@ class GoogleSSO(QueryandemailClass):
 
 #login method to check if the user is in the database, if not it will insert the user into the database
     def login(self, email):
-        rows, description = self.query('SELECT * FROM auth_user WHERE email = %s', [email])
+        rows, description = self._query('SELECT * FROM auth_user WHERE email = %s', [email])
         if rows:
             user_id = rows[0][0]
         else:
@@ -473,22 +470,37 @@ class ServerTime(APIView):
 #register class to allow applicants to register with a username, password and email. By default, the is_staff attribute is set to false so they do not have employee access rights
 #however any employee, admin or applicant can sign in using the same login system. Django's built in admin website can adjust the level of access rights for each user 
 class Register(QueryandemailClass):
-    #allows anyone to register
+    # allows anyone to register
     permission_classes = [AllowAny]
-    #post method to insert a new user into the database
+
+    # post method to insert a new user into the database
     def post(self, request, format=None):
         data = request.data
-        username = data.get('username') 
+        username = data.get('username')
         password = data.get('password')
         email = data.get('email')
-        hashed_password = make_password(password) #hashed password using an SHA_256 digest
-        cursor = self._query('''
-            INSERT INTO auth_user (username, password, is_superuser, is_staff, is_active, date_joined, first_name, last_name, email)
-            VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s, %s, %s)
-        ''', [username, hashed_password, False, False, True, '', '', email])
-        if cursor:
-            return Response(status=status.HTTP_201_CREATED)
-        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        hashed_password = make_password(password)  # hashed password using an SHA_256 digest
+
+        # Check if the username already exists
+        username_exists, _ = self._query('SELECT 1 FROM auth_user WHERE username = %s', [username])
+        if username_exists:
+            return Response({'error': 'Username already exists, please choose a different username.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if the email already exists
+        email_exists, _ = self._query('SELECT 1 FROM auth_user WHERE email = %s', [email])
+        if email_exists:
+            return Response({'error': 'Email already exists, please choose a different email.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            cursor = self._query('''
+                INSERT INTO auth_user (username, password, is_superuser, is_staff, is_active, date_joined, first_name, last_name, email)
+                VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, %s, %s, %s)
+            ''', [username, hashed_password, False, False, True, '', '', email])
+            if cursor:
+                return Response(status=status.HTTP_201_CREATED)
+        except Exception as e:
+            error_message = str(e)
+            return Response({'error': error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def get(self, request):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)

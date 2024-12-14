@@ -2,9 +2,10 @@ import React, { useState } from "react";
 import GoogleSSO from "../components/GoogleSSO";
 import { useNavigate } from "react-router-dom";
 
-//Function to allow the applicant or employee to login using the same webpage
+// Function to allow the applicant or employee to login using the same webpage
 const Login = () => {
   const [userlogin, setuserlogin] = useState([]);
+  const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
 
   const completelogin = async () => {
@@ -42,6 +43,8 @@ const Login = () => {
         }
         window.location.reload();
       }
+    } else if (response.status === 401) {
+      setErrorMessage("Username or password is incorrect.");
     }
   };
 
@@ -91,6 +94,7 @@ const Login = () => {
           name="password"
         />
       </div>
+      {errorMessage && <div className="alert alert-danger">{errorMessage}</div>}
       <button type="submit" className="btn btn-primary">
         Login
       </button>
