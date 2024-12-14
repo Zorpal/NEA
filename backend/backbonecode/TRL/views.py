@@ -12,7 +12,7 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.contrib.auth.hashers import make_password
 from django.http import HttpResponse
-from .filterapplicants import filterapplicant
+from .filterapplicants import filterapplicant, predict_job_matches
 import os
 from datetime import datetime
 from django.conf import settings
@@ -297,11 +297,28 @@ class Applicantstatistics(QueryandemailClass):
     
     def post(self, request):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-        
+
+class JobRecommendationsView(QueryandemailClass):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            rows, description = self._query('''
+                SELECT applicant_id, job_id
+                FROM TRL_jobrecommendation
+            ''', [])
+            if rows is not None:
+                columns = [col[0] for col in description]
+                results = [dict(zip(columns, row)) for row in rows]
+                return Response(results, status=status.HTTP_200_OK)
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        except Exception as caughterror:
+            return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 #class to filter applicants based on their skills that match to a job (uses code in filterapplicants.py)
 class RecommendApplicanttoJob(APIView):
     permission_classes = [IsAdminUser]
-
+    
     def get(self, request, job_id):
         recommendations_both_skills, recommendations_one_skill = filterapplicant(job_id)
         return Response({
@@ -309,8 +326,27 @@ class RecommendApplicanttoJob(APIView):
             'recommendations_one_skill': recommendations_one_skill
         })
     
-    def post(self, request):
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    def post(self, request, job_id=None):
+        applicant_skills = request.data.get('applicant_skills')
+        
+        if not applicant_skills:
+            return Response({'error': 'Applicant skills are required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            predictjobs = []
+            for _ in range(20):
+                predicted_job_id = predict_job_matches(applicant_skills)
+                predictjobs.append(predicted_job_id)
+            
+            predictjobs.sort()
+            median_job_id = predictjobs[len(predictjobs) // 2]
+            
+            return Response({'predicted_job_id': median_job_id}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+
 
 #class to return a list of all applicants and their details in the database
 class ListApplicants(QueryandemailClass):
@@ -338,17 +374,18 @@ class ListApplicants(QueryandemailClass):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 #class to download an applicant's cv stored on the server
+from django.http import FileResponse
+
 class DownloadCV(QueryandemailClass):
+
+
     def get(self, request, id):
         try:
             rows, _ = self._query('SELECT cv FROM TRL_applicantdetails WHERE id = %s', [id])
             if rows:
                 file_path = rows[0][0]
                 if file_path and os.path.exists(file_path):
-                    with open(file_path, 'rb') as cv:
-                        response = HttpResponse(cv.read(), content_type="application/octet-stream")
-                        response['Content-Disposition'] = 'inline; filename=' + os.path.basename(file_path)
-                        return response
+                    return FileResponse(open(file_path, 'rb'), content_type='application/octet-stream')
             return Response(status=status.HTTP_404_NOT_FOUND)
         except Exception as caughterror:
             return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

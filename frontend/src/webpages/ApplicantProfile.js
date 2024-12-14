@@ -167,7 +167,7 @@ const ApplicantProfile = () => {
                     <h6>Email</h6>
                     <p>{details.email}</p>
                     <h6>Phone Number</h6>
-                    <p>{details.phonenumber}</p>
+                    <p>0{details.phonenumber}</p>
                     <h6>Skills</h6>
                     <ul>
                       {details.skills ? details.skills.split(',').map((skill, index) => (
