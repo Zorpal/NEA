@@ -143,7 +143,11 @@ const ListApplicants = () => {
 
   const updateRecruitmentTracker = async (email, jobId) => {
     try {
-      await api.post("/applicant/updatert/", { email, recruitmenttracker: 3, jobId });
+      await api.post("/applicant/updatert/", {
+        email,
+        recruitmenttracker: 3,
+        job_id: jobId,
+      });
       alert("Recruitment tracker updated successfully");
       getApplicantDetails();
     } catch (error) {

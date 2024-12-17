@@ -1,24 +1,24 @@
-from rest_framework.generics import *
-from .models import *
-from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.views import APIView
-from rest_framework import status
-from .utils import *
+from rest_framework.generics import *
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.response import Response
-from django.contrib.auth.models import User
+from rest_framework import status
 from rest_framework_simplejwt.tokens import AccessToken
+from django.contrib.auth.models import User
 from django.db import connection
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.contrib.auth.hashers import make_password
-from django.http import HttpResponse
-from .filterapplicants import filterapplicant, predict_job_matches
-import os
-from datetime import datetime
+from django.http import FileResponse
 from django.conf import settings
-import requests
 from django.core.mail import send_mail
+from datetime import datetime
 from abc import ABC, abstractmethod
+import os
+import requests
+from .models import *
+from .utils import *
+from .filterapplicants import filterapplicant, predict_job_matches
 
 # Created a superclass with a method to execute queries by taking in the query and parameters 
 class QueryandemailClass(APIView):
@@ -320,10 +320,10 @@ class RecommendApplicanttoJob(APIView):
     permission_classes = [IsAdminUser]
     
     def get(self, request, job_id):
-        recommendations_both_skills, recommendations_one_skill = filterapplicant(job_id)
+        mostsuitableapplicants, suitableapplicants = filterapplicant(job_id)
         return Response({
-            'recommendations_both_skills': recommendations_both_skills,
-            'recommendations_one_skill': recommendations_one_skill
+            'mostsuitableapplicants': mostsuitableapplicants,
+            'suitableapplicants': suitableapplicants
         })
     
     def post(self, request, job_id=None):
@@ -374,11 +374,9 @@ class ListApplicants(QueryandemailClass):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 #class to download an applicant's cv stored on the server
-from django.http import FileResponse
+
 
 class DownloadCV(QueryandemailClass):
-
-
     def get(self, request, id):
         try:
             rows, _ = self._query('SELECT cv FROM TRL_applicantdetails WHERE id = %s', [id])
@@ -535,9 +533,8 @@ class Register(QueryandemailClass):
             ''', [username, hashed_password, False, False, True, '', '', email])
             if cursor:
                 return Response(status=status.HTTP_201_CREATED)
-        except Exception as e:
-            error_message = str(e)
-            return Response({'error': error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as caughterror:
+            return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def get(self, request):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)

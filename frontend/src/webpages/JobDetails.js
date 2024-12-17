@@ -1,3 +1,5 @@
+// Updated excerpt from jobdetails.js
+
 import React, { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api";
@@ -7,13 +9,11 @@ const JobDetails = () => {
   const { jobId } = useParams();
   const [job, setJob] = useState({});
   const [isStaff, setIsStaff] = useState(false);
-  const [recommendationsBothSkills, setRecommendationsBothSkills] = useState([]);
-  const [recommendationsOneSkill, setRecommendationsOneSkill] = useState([]);
+  const [mostsuitableapplicants, setMostsuitableapplicants] = useState([]);
+  const [suitableapplicants, setSuitableapplicants] = useState([]);
   const [applicantDetails, setApplicantDetails] = useState({});
   const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
-  const [applicantSkills, setApplicantSkills] = useState("");
-  const [predictedJobId, setPredictedJobId] = useState(null);
 
   useEffect(() => {
     const retrievestaffstatus = async () => {
@@ -41,8 +41,8 @@ const JobDetails = () => {
   const getRecommendations = useCallback(async () => {
     try {
       const response = await api.get(`/Jobs/jobs/${jobId}/recommendations/`);
-      setRecommendationsBothSkills(response.data.recommendations_both_skills);
-      setRecommendationsOneSkill(response.data.recommendations_one_skill);
+      setMostsuitableapplicants(response.data.mostsuitableapplicants);
+      setSuitableapplicants(response.data.suitableapplicants);
     } catch (error) {
       console.error("Error fetching recommendations:", error);
     }
@@ -98,26 +98,6 @@ const JobDetails = () => {
     toastBootstrap.show();
   };
 
-  const handlePredictJobMatch = async () => {
-    if (!applicantSkills) {
-      setToastMessage("Applicant skills are required");
-      showToast();
-      return;
-    }
-  
-    try {
-      const response = await api.post(`/Jobs/jobs/${jobId}/recommendations/`, {
-        applicant_skills: applicantSkills.split(","),
-      });
-      setPredictedJobId(response.data.predicted_job_id);
-      setToastMessage(`Predicted Job ID: ${response.data.predicted_job_id}`);
-      showToast();
-    } catch (error) {
-      setToastMessage("Error predicting job match");
-      showToast();
-    }
-  };
-
   return (
     <div className="container">
       <div className="row">
@@ -149,7 +129,7 @@ const JobDetails = () => {
                   <div className="card-header">Applicants with Both Skills</div>
                   <div className="card-body">
                     <ul className="list-group">
-                      {recommendationsBothSkills.map((email) => (
+                      {mostsuitableapplicants.map((email) => (
                         <li
                           key={email}
                           className="list-group-item d-flex justify-content-between align-items-center"
@@ -225,7 +205,7 @@ const JobDetails = () => {
                   <div className="card-header">Applicants with One Skill</div>
                   <div className="card-body">
                     <ul className="list-group">
-                      {recommendationsOneSkill.map((email) => (
+                      {suitableapplicants.map((email) => (
                         <li
                           key={email}
                           className="list-group-item d-flex justify-content-between align-items-center"
@@ -293,36 +273,6 @@ const JobDetails = () => {
                         </li>
                       ))}
                     </ul>
-                  </div>
-                </div>
-              </div>
-              <div className="col-md-12 mt-3">
-                <div className="card">
-                  <div className="card-header">Predict Job Match</div>
-                  <div className="card-body">
-                    <div className="mb-3">
-                      <label htmlFor="applicantSkills" className="form-label">
-                        Applicant Skills (comma-separated)
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="applicantSkills"
-                        value={applicantSkills}
-                        onChange={(e) => setApplicantSkills(e.target.value)}
-                      />
-                    </div>
-                    <button
-                      className="btn btn-primary"
-                      onClick={handlePredictJobMatch}
-                    >
-                      Predict Job Match
-                    </button>
-                    {predictedJobId && (
-                      <div className="mt-3">
-                        <p>Predicted Job ID: {predictedJobId}</p>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>

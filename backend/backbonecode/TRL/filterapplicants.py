@@ -1,6 +1,6 @@
 from sklearn.ensemble import RandomForestClassifier
 from django.db import connection
-import pandas as pd
+import pandas
 import logging
 
 # Global variable to store the list of skills used during training
@@ -91,7 +91,7 @@ def get_all_jobs():
         rows = cursor.fetchall()
     return rows
 
-# Function to get all applicant emails and their timestamps as applicants should also be sorted on a first come first serve
+# Function to get all applicant emails and their timestamps as applicants should also be sorted on a first come first serve basis
 def getapplicantemail():
     with connection.cursor() as cursor:
         cursor.execute("SELECT email, timestamp FROM TRL_ApplicantDetails")
@@ -140,7 +140,7 @@ def train_model():
             job_id, skill = row
             data.append({'job_id': job_id, 'skill': skill})
 
-        df = pd.DataFrame(data)
+        df = pandas.DataFrame(data)
         df_pivot = df.pivot_table(index='job_id', columns='skill', aggfunc='size', fill_value=0).reset_index()
         df_pivot = df_pivot.rename_axis(None, axis=1)
 
@@ -166,7 +166,7 @@ def predict_job_matches(applicantskills):
         #Creates a feature vector with the same structure as the training data
         applicant_vector = [1 if skill in applicantskills else 0 for skill in skills]
         #Creates a DataFrame with the same feature names as the training data
-        applicant_df = pd.DataFrame([applicant_vector], columns=skills)
+        applicant_df = pandas.DataFrame([applicant_vector], columns=skills)
 
         prediction = model.predict(applicant_df)[0]
         return prediction
