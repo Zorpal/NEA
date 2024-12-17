@@ -242,8 +242,8 @@ const AddJob = () => {
                 <option value="Hospital/GP Experience">
                   Hospital/GP Experience
                 </option>
-                <option value="Manegerial Experience">
-                  Manegerial Experience
+                <option value="Managerial Experience">
+                  Managerial Experience
                 </option>
                 <option value="Technological Experience">
                   Technological Experience
@@ -276,8 +276,8 @@ const AddJob = () => {
                 <option value="Hospital/GP Experience">
                   Hospital/GP Experience
                 </option>
-                <option value="Manegerial Experience">
-                  Manegerial Experience
+                <option value="Managerial Experience">
+                  Managerial Experience
                 </option>
                 <option value="Technological Experience">
                   Technological Experience

@@ -195,7 +195,7 @@ const ApplicantDetails = () => {
                     <option value="Child Social Care" />
                     <option value="Elderly Social Care" />
                     <option value="Hospital/GP Experience" />
-                    <option value="Manegerial Experience" />
+                    <option value="Managerial Experience" />
                     <option value="Technological Experience" />
                     <option value="Physiotherapy" />
                     <option value="Doctorate" />
@@ -224,7 +224,7 @@ const ApplicantDetails = () => {
                     <option value="Child Social Care" />
                     <option value="Elderly Social Care" />
                     <option value="Hospital/GP Experience" />
-                    <option value="Manegerial Experience" />
+                    <option value="Managerial Experience" />
                     <option value="Technological Experience" />
                     <option value="Physiotherapy" />
                     <option value="Doctorate" />
@@ -251,7 +251,7 @@ const ApplicantDetails = () => {
                     <option value="Child Social Care" />
                     <option value="Elderly Social Care" />
                     <option value="Hospital/GP Experience" />
-                    <option value="Manegerial Experience" />
+                    <option value="Managerial Experience" />
                     <option value="Technological Experience" />
                     <option value="Physiotherapy" />
                     <option value="Doctorate" />
@@ -277,7 +277,7 @@ const ApplicantDetails = () => {
                     <option value="Child Social Care" />
                     <option value="Elderly Social Care" />
                     <option value="Hospital/GP Experience" />
-                    <option value="Manegerial Experience" />
+                    <option value="Managerial Experience" />
                     <option value="Technological Experience" />
                     <option value="Physiotherapy" />
                     <option value="Doctorate" />
@@ -303,7 +303,7 @@ const ApplicantDetails = () => {
                     <option value="Child Social Care" />
                     <option value="Elderly Social Care" />
                     <option value="Hospital/GP Experience" />
-                    <option value="Manegerial Experience" />
+                    <option value="Managerial Experience" />
                     <option value="Technological Experience" />
                     <option value="Physiotherapy" />
                     <option value="Doctorate" />

@@ -1,20 +1,18 @@
-import React, {useContext, useEffect} from 'react'
-import { useNavigate } from 'react-router-dom';
-import ApplicantContext from '../context/ApplicantContext';
+import React, { useContext, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import ApplicantContext from "../context/ApplicantContext";
 
 const Logout = () => {
-    const navigate = useNavigate();
-    const { updateuserinformation } = useContext(ApplicantContext);
-    
-    useEffect(()=>{
-        localStorage.clear()
-        updateuserinformation([])
-        navigate('/')
-    }, [navigate, updateuserinformation])
+  const navigate = useNavigate();
+  const { updateuserinformation } = useContext(ApplicantContext);
 
-  return (
-    <div>Logout</div>
-  )
-}
+  useEffect(() => {
+    localStorage.clear();
+    updateuserinformation([]);
+    navigate("/");
+  }, [navigate, updateuserinformation]);
 
-export default Logout
+  return <div>Logout</div>;
+};
+
+export default Logout;

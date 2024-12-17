@@ -56,6 +56,7 @@ const EmployeeHome = () => {
           padding: spacing,
         }}
       >
+        
         <div className="card bg-dark text-white" style={{ margin: 0 }}>
           <div className="card-body">
             <h5 className="card-title">TRL Employee Home</h5>
@@ -64,16 +65,12 @@ const EmployeeHome = () => {
               on <strong>Applicants</strong>
             </p>
             <p className="card-text">
-              To view the list of jobs and to see a list of applicants suitable
-              for those jobs, click on <strong>Jobs</strong>
+              To view the list of jobs and to see a list of applicants suitable for those jobs, click on <strong>Jobs</strong>
             </p>
             <p className="card-text">
               To create a new job, click on <strong>Add a Job</strong>
             </p>
-            <p className="card-text">
-              To view the non-employee home page, click on the{" "}
-              <strong>logo</strong>
-            </p>
+            <p className="card-text">To view the non-employee home page, click on the <strong>logo</strong></p>
           </div>
         </div>
         {statistics && (
@@ -81,10 +78,7 @@ const EmployeeHome = () => {
             <div className="card-body">
               <h5 className="card-title">Statistics</h5>
               <p className="card-text">
-                <strong>
-                  Total number of applicants who have submitted details:
-                </strong>{" "}
-                {statistics.totalnumofapplicants}
+                <strong>Total number of applicants who have submitted details:</strong>{" "}{statistics.totalnumofapplicants}
               </p>
               <p className="card-text">
                 <strong>Average recruitment stage applicants are at:</strong>{" "}
