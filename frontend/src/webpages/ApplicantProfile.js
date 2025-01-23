@@ -51,7 +51,7 @@ const ApplicantProfile = () => {
           getJobDetails(data[0].id);
         }
       })
-      .catch((err) => alert(err));
+      .catch((err) => alert('You are not authorised to view this. You are not logged in.', err));
   };
 
   //function to get the job details based on the applicant ID

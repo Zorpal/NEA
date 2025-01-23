@@ -337,13 +337,10 @@ class RecommendApplicanttoJob(APIView):
             for _ in range(20):
                 predicted_job_id = predict_job_matches(applicant_skills)
                 predictjobs.append(predicted_job_id)
-            
-            predictjobs.sort()
-            median_job_id = predictjobs[len(predictjobs) // 2]
-            
-            return Response({'predicted_job_id': median_job_id}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            mode = max(set(predictjobs), key=predictjobs.count)
+            return Response({'predicted_job_id': mode}, status=status.HTTP_200_OK)
+        except Exception as caughterror:
+            return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 
 

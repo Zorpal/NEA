@@ -53,7 +53,7 @@ const ListApplicants = () => {
       const response = await api.get("/applicant/applicant/list/");
       setApplicantDetails(response.data);
     } catch (error) {
-      alert(error);
+      alert('You are not authorised to view this. You are not logged in.', error);
     }
   }, []);
 
@@ -64,7 +64,7 @@ const ListApplicants = () => {
       setApplicantsToContact(response.data);
       console.log(response.data);
     } catch (error) {
-      alert(error);
+      alert('You are not authorised to view this. You are not logged in.', error);
     }
   }, []);
 

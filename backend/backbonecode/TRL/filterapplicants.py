@@ -11,6 +11,7 @@ def cosine_similarity(vec1, vec2):
     dot_product = sum(a * b for a, b in zip(vec1, vec2))
     magnitude1 = sum(a * a for a in vec1) ** 0.5
     magnitude2 = sum(b * b for b in vec2) ** 0.5
+    logging.error(f"Dot product: {dot_product}, Magnitude 1: {magnitude1}, Magnitude 2: {magnitude2}")
     if magnitude1 == 0 or magnitude2 == 0:
         return 0
     return dot_product / (magnitude1 * magnitude2)
@@ -20,6 +21,7 @@ def getjob(job_id):
     with connection.cursor() as cursor:
         cursor.execute("SELECT jobprimaryskill, jobsecondaryskill FROM TRL_JobDetails WHERE id = %s", [job_id])
         row = cursor.fetchone()
+        logging.error(f"Job details: {row}")
     return row
 
 def filterapplicant(job_id):
@@ -33,15 +35,21 @@ def filterapplicant(job_id):
     
     skill_matrix = []
     filtered_applicants = []
+    logging.error(f"Applicant email: {applicantemail}")
+    logging.error(f"Applicant skills: {applicantskills}")
+    logging.error(f"List of skills: {listofskills}")
+    logging.error(f"Job skills: {job_skills}")
+    logging.error(f"Job ID: {job_id}")
     
     # Create skill vectors for each applicant
     for applicant, submission_time in applicantemail:
         skillvector = [1 if skill in applicantskills.get(applicant, []) else 0 for skill in listofskills]
+        logging.error(f"Skill vector: {skillvector}")
         if any(skill in job_skills for skill in applicantskills.get(applicant, [])):
             skill_matrix.append((skillvector, submission_time))
             filtered_applicants.append(applicant)
     job_vector = [1 if skill in job_skills else 0 for skill in listofskills]
-    
+    logging.error(f"Job vector: {job_vector}")
     # calculates similarity scores between job skill and applicant skill vectors
     similarity_scores = [(cosine_similarity(skillvector, job_vector), submission_time) for skillvector, submission_time in skill_matrix]
     
@@ -62,6 +70,7 @@ def filterapplicant(job_id):
     
     for applicant, score, submission_time in both_skills:
         while stack_2skills and stack_2skills[-1][2] > submission_time:
+            logging.error(f"Stack 2 skills: {stack_2skills}")
             temp.append(stack_2skills.pop())
         stack_2skills.append((applicant, score, submission_time))
         while temp:
@@ -72,6 +81,7 @@ def filterapplicant(job_id):
     
     for applicant, score, submission_time in one_skill:
         while stack_1skill and stack_1skill[-1][2] > submission_time:
+            logging.error(f"Stack 1 skill: {stack_1skill}")
             temp.append(stack_1skill.pop())
         stack_1skill.append((applicant, score, submission_time))
         while temp:
@@ -80,6 +90,8 @@ def filterapplicant(job_id):
     # Assigns the shortlisted applicants to the recommended_applicants list
     recommended_applicants_both_skills = [applicant for applicant, _, _ in stack_2skills]
     recommended_applicants_one_skill = [applicant for applicant, _, _ in stack_1skill]
+    logging.error(f"Recommended applicants with both skills: {recommended_applicants_both_skills}")
+    logging.error(f"Recommended applicants with one skill: {recommended_applicants_one_skill}")
     
     return recommended_applicants_both_skills, recommended_applicants_one_skill
 

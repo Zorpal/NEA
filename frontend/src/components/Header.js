@@ -13,17 +13,18 @@ const Header = () => {
   useEffect(() => {
     const retrievestaffstatus = async () => {
       try {
-      const response = await api.get("/applicant/retrieve-staff-status");
-      if (response.status === 200) {
-        setIsStaff(response.data.is_staff);
-      }
+        const response = await api.get("/applicant/retrieve-staff-status");
+        if (response.status === 200) {
+          setIsStaff(response.data.is_staff);
+        }
       } catch (error) {
-      console.error("Error retrieving staff status:", error);
+        console.error("Error retrieving staff status:", error);
       }
     };
     retrievestaffstatus();
   }, []);
-//renders Home, Jobs and Profile if the user is logged in; renders Home, Jobs, Add a Job and Applicants if an employee is logged in, else renders Home and Jobs
+  
+  //renders Home, Jobs and Profile if the user is logged in; renders Home, Jobs, Add a Job and Applicants if an employee is logged in, else renders Home and Jobs
   return (
     <nav className={`navbar navbar-expand-lg ${isStaff ? 'bg-dark' : 'bg-body-tertiary'}`}>
       <div className="container-fluid">
@@ -80,7 +81,7 @@ const Header = () => {
           <span className={`navbar-text ${isStaff ? 'text-white' : ''}`}>
             {userinformation.access_token ? (
               <>
-                Hello
+                {isStaff ? "Logged in as Employee!" : "Welcome!"}
                 <Link className={`nav-link ${isStaff ? 'text-white' : ''}`} to="/logout/">
                   Logout
                 </Link>
@@ -109,4 +110,4 @@ const Header = () => {
   );
 };
 
-export default Header
+export default Header;

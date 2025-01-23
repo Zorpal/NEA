@@ -17,6 +17,8 @@ const ApplicantDetails = () => {
   const [preferences, setpreferences] = useState("");
   const [cv, setcv] = useState(null);
   const [cvError, setCvError] = useState("");
+  const [skillError, setSkillError] = useState(false);
+  const [phonenumberError, setPhonenumberError] = useState(false);
 
   const navigate = useNavigate();
 
@@ -34,11 +36,29 @@ const ApplicantDetails = () => {
     };
     fetchUserEmail();
   }, []);
-
+  const validatePhoneNumber = (number) => {
+    const isNumeric = /^\d+$/.test(number);
+    if (number.length !== 10 || !isNumeric) {
+      setPhonenumberError(true);
+    } else {
+      setPhonenumberError(false);
+    }
+  };
+  const validateSkills = () => {
+    const skills = [skill_1, skill_2, skill_3, skill_4, skill_5];
+    const uniqueSkills = new Set(skills.filter(skill => skill !== ""));
+    if (uniqueSkills.size !== skills.filter(skill => skill !== "").length) {
+      setSkillError("Please ensure that no skill is repeated.");
+      return false;
+    } else {
+      setSkillError("");
+      return true;
+    }
+  };
   //function to send the applicant details to the backend
   const sendApplicantDetails = async (e) => {
     e.preventDefault();
-    if (!e.target.checkValidity()) {
+    if (!e.target.checkValidity() || !validateSkills()) {
       e.stopPropagation();
       e.target.classList.add('was-validated');
       return;
@@ -114,6 +134,19 @@ const ApplicantDetails = () => {
     }
   };
 
+  const skillOptions = [
+    "Adult Social Care",
+    "Child Social Care",
+    "Elderly Social Care",
+    "Hospital/GP Experience",
+    "Managerial Experience",
+    "Technological Experience",
+    "Physiotherapy",
+    "Doctorate",
+    "Surgeon",
+    "Nursing"
+  ];
+
   return (
     <Authorisedroute>
       <div className="container mt-5">
@@ -166,162 +199,116 @@ const ApplicantDetails = () => {
                     Phone Number*
                   </label>
                   <input
-                    className="form-control"
+                    className={`form-control ${phonenumberError ? "is-invalid" : ""}`}
                     id="phonenumber"
-                    onChange={(e) => setphonenumber(e.target.value)}
+                    onChange={(e) => {
+                      setphonenumber(e.target.value);
+                      validatePhoneNumber(e.target.value);
+                   }}
                     value={phonenumber}
                     required
                   />
                   <div className="valid-feedback">Looks good!</div>
                   <div className="invalid-feedback">
-                    Please enter a valid phone number!
+                    Please enter a valid phone number! (Don't include a 0 at the start)
                   </div>
                 </div>
                 <div className="mb-3">
                   <label htmlFor="skill_1" className="form-label">
                     Experience in what fields?*
                   </label>
-                  <input
-                    type="text"
-                    className="form-control"
+                  <select
+                    className="form-select"
                     id="skill_1"
-                    list="skill_1_options"
                     onChange={(e) => setskill_1(e.target.value)}
                     value={skill_1}
                     required
-                  />
-                  <datalist id="skill_1_options">
-                    <option value="Adult Social Care" />
-                    <option value="Child Social Care" />
-                    <option value="Elderly Social Care" />
-                    <option value="Hospital/GP Experience" />
-                    <option value="Managerial Experience" />
-                    <option value="Technological Experience" />
-                    <option value="Physiotherapy" />
-                    <option value="Doctorate" />
-                    <option value="Surgeon" />
-                    <option value="Nursing" />
-                  </datalist>
+                  >
+                    <option value="">Select a field</option>
+                    {skillOptions.map((option, index) => (
+                      <option key={index} value={option}>{option}</option>
+                    ))}
+                  </select>
                   <div className="valid-feedback">Looks good!</div>
                   <div className="invalid-feedback">Please select a field!</div>
                 </div>
-
+                {skillError && <div className="text-danger">{skillError}</div>}
                 <div className="mb-3">
                   <label htmlFor="skill_2" className="form-label">
                     Experience in what fields?*
                   </label>
-                  <input
-                    type="text"
-                    className="form-control"
+                  <select
+                    className="form-select"
                     id="skill_2"
-                    list="skill_2_options"
                     onChange={(e) => setskill_2(e.target.value)}
                     value={skill_2}
                     required
-                  />
-                  <datalist id="skill_2_options">
-                    <option value="Adult Social Care" />
-                    <option value="Child Social Care" />
-                    <option value="Elderly Social Care" />
-                    <option value="Hospital/GP Experience" />
-                    <option value="Managerial Experience" />
-                    <option value="Technological Experience" />
-                    <option value="Physiotherapy" />
-                    <option value="Doctorate" />
-                    <option value="Surgeon" />
-                    <option value="Nursing" />
-                  </datalist>
+                  >
+                    <option value="">Select a field</option>
+                    {skillOptions.map((option, index) => (
+                      <option key={index} value={option}>{option}</option>
+                    ))}
+                  </select>
                   <div className="valid-feedback">Looks good!</div>
                   <div className="invalid-feedback">Please select a field!</div>
                 </div>
+                {skillError && <div className="text-danger">{skillError}</div>}
                 <div className="mb-3">
                   <label htmlFor="skill_3" className="form-label">
                     Experience in what fields? (Optional)
                   </label>
-                  <input
-                    type="text"
-                    className="form-control"
+                  <select
+                    className="form-select"
                     id="skill_3"
-                    list="skill_3_options"
                     onChange={(e) => setskill_3(e.target.value)}
                     value={skill_3}
-                  />
-                  <datalist id="skill_3_options">
-                    <option value="Adult Social Care" />
-                    <option value="Child Social Care" />
-                    <option value="Elderly Social Care" />
-                    <option value="Hospital/GP Experience" />
-                    <option value="Managerial Experience" />
-                    <option value="Technological Experience" />
-                    <option value="Physiotherapy" />
-                    <option value="Doctorate" />
-                    <option value="Surgeon" />
-                    <option value="Nursing" />
-                  </datalist>
+                  >
+                    <option value="">Select a field</option>
+                    {skillOptions.map((option, index) => (
+                      <option key={index} value={option}>{option}</option>
+                    ))}
+                  </select>
                 </div>
-
+                {skillError && <div className="text-danger">{skillError}</div>}
                 <div className="mb-3">
                   <label htmlFor="skill_4" className="form-label">
                     Experience in what fields? (Optional)
                   </label>
-                  <input
-                    type="text"
-                    className="form-control"
+                  <select
+                    className="form-select"
                     id="skill_4"
-                    list="skill_4_options"
                     onChange={(e) => setskill_4(e.target.value)}
                     value={skill_4}
-                  />
-                  <datalist id="skill_4_options">
-                    <option value="Adult Social Care" />
-                    <option value="Child Social Care" />
-                    <option value="Elderly Social Care" />
-                    <option value="Hospital/GP Experience" />
-                    <option value="Managerial Experience" />
-                    <option value="Technological Experience" />
-                    <option value="Physiotherapy" />
-                    <option value="Doctorate" />
-                    <option value="Surgeon" />
-                    <option value="Nursing" />
-                  </datalist>
+                  >
+                    <option value="">Select a field</option>
+                    {skillOptions.map((option, index) => (
+                      <option key={index} value={option}>{option}</option>
+                    ))}
+                  </select>
                 </div>
-
+                {skillError && <div className="text-danger">{skillError}</div>}
                 <div className="mb-3">
                   <label htmlFor="skill_5" className="form-label">
                     Experience in what fields? (Optional)
                   </label>
-                  <input
-                    type="text"
-                    className="form-control"
+                  <select
+                    className="form-select"
                     id="skill_5"
-                    list="skill_5_options"
                     onChange={(e) => setskill_5(e.target.value)}
                     value={skill_5}
-                  />
-                  <datalist id="skill_5_options">
-                    <option value="Adult Social Care" />
-                    <option value="Child Social Care" />
-                    <option value="Elderly Social Care" />
-                    <option value="Hospital/GP Experience" />
-                    <option value="Managerial Experience" />
-                    <option value="Technological Experience" />
-                    <option value="Physiotherapy" />
-                    <option value="Doctorate" />
-                    <option value="Surgeon" />
-                    <option value="Nursing" />
-                  </datalist>
+                  >
+                    <option value="">Select a field</option>
+                    {skillOptions.map((option, index) => (
+                      <option key={index} value={option}>{option}</option>
+                    ))}
+                  </select>
                 </div>
+                {skillError && <div className="text-danger">{skillError}</div>}
                 <div className="mb-3">
                   <label htmlFor="qualifications" className="form-label">
                     Qualifications:*
                   </label>
-                  <textarea
-                    className="form-control"
-                    id="qualifications"
-                    onChange={(e) => setqualifications(e.target.value)}
-                    value={qualifications}
-                    required
-                  />
+                  <textarea className="form-control" id="qualifications"onChange={(e) => setqualifications(e.target.value)} value={qualifications} required />
                   <div className="valid-feedback">Looks good!</div>
                   <div className="invalid-feedback">
                     Please enter your qualifications!
@@ -331,13 +318,7 @@ const ApplicantDetails = () => {
                   <label htmlFor="preferences" className="form-label">
                     Preferences*
                   </label>
-                  <select
-                    className="form-select"
-                    id="preferences"
-                    onChange={(e) => setpreferences(e.target.value)}
-                    value={preferences}
-                    required
-                  >
+                  <select className="form-select" id="preferences" onChange={(e) => setpreferences(e.target.value)} value={preferences} required>
                     <option value="">Select a preference</option>
                     <option value="Full Time">Full Time</option>
                     <option value="Part Time">Part Time</option>
@@ -352,13 +333,7 @@ const ApplicantDetails = () => {
                 <div className="form-group">
                   <label htmlFor="cv">Upload a CV* (Accepted formats: .pdf, .docx)</label>
                   <br />
-                  <input
-                    type="file"
-                    id="cv"
-                    name="cv"
-                    onChange={handleCvChange}
-                    required
-                  />
+                  <input type="file" id="cv" name="cv" onChange={handleCvChange} required />
                   {cvError && <div className="text-danger">{cvError}</div>}
                 </div>
                 <div className="col-12 text-center">
