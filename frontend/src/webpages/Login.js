@@ -4,11 +4,16 @@ import { useNavigate } from "react-router-dom";
 
 // Function to allow the applicant or employee to login using the same webpage
 const Login = () => {
-  const [userlogin, setuserlogin] = useState([]);
+  const [userlogin, setuserlogin] = useState({});
   const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
 
   const completelogin = async () => {
+    if (!userlogin.username || !userlogin.password) {
+      setErrorMessage("Username and password are required.");
+      return;
+    }
+
     const usernameLength = userlogin.username.length;
     const encryptedPassword = encryptpassword(userlogin.password, usernameLength); //this password is shifted using a caesar shift that shifts based on the length of the username
     console.log(encryptedPassword)

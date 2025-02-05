@@ -4,12 +4,10 @@ import { Link } from "react-router-dom";
 import trllogo from "../images/trllogo.png";
 import api from "../api";
 
-//Function to render a header on each page that differs depending on whether the logged in user is an employee or an applicant
 const Header = () => {
   const { userinformation } = useContext(ApplicantContext);
   const [isStaff, setIsStaff] = useState(false);
 
-  //gets the is_staff attribute of each user from the backend server
   useEffect(() => {
     const retrievestaffstatus = async () => {
       try {
@@ -23,8 +21,7 @@ const Header = () => {
     };
     retrievestaffstatus();
   }, []);
-  
-  //renders Home, Jobs and Profile if the user is logged in; renders Home, Jobs, Add a Job and Applicants if an employee is logged in, else renders Home and Jobs
+
   return (
     <nav className={`navbar navbar-expand-lg ${isStaff ? 'bg-dark' : 'bg-body-tertiary'}`}>
       <div className="container-fluid">
@@ -88,18 +85,13 @@ const Header = () => {
               </>
             ) : (
               <>
-                <div>
-                  <span className={`navbar-text ${isStaff ? 'text-white' : ''}`}>
-                    <div className="d-flex">
-                      <Link className={`nav-link ${isStaff ? 'text-white' : ''}`} to="/login/">
-                        Login{" "}
-                      </Link>
-                      |
-                      <Link className={`nav-link ${isStaff ? 'text-white' : ''}`} to="/register/">
-                        Register{" "}
-                      </Link>
-                    </div>
-                  </span>
+                <div className="d-flex">
+                  <Link className={`btn btn-primary ${isStaff ? 'text-white' : ''} me-2`} to="/login/">
+                    Login
+                  </Link>
+                  <Link className={`btn btn-secondary ${isStaff ? 'text-white' : ''}`} to="/register/">
+                    Register
+                  </Link>
                 </div>
               </>
             )}
