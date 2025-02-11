@@ -5457,7 +5457,7 @@ __metadata:
     vlq: "npm:^0.2.2"
   bin:
     buble: ./bin/buble
-  checksum: 10c0/82e259cd3533316196b3a1304334993d02149ae06c334d65c1668e2c5362bc80acb5356e754a2c2f5e262dcad793d9b2ce70f74051dca1878370f0027b17f588
+  checksum: 10c0/d55873db2dff08f1a07db85acd07195ecf220a3b04ae7f21b574edd157bb9ae1bda471cdb35605d45165785839ee9514eafe79847601905b03f528bea93de673
   languageName: node
   linkType: hard
 
