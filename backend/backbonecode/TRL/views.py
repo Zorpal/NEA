@@ -28,11 +28,11 @@ class QueryandemailClass(APIView):
         self.__fullname = ''
         self.__subject = 'Update on your application'
         self.__message = '''
-        Dear {fullname},
+Dear {fullname},
         
-        There has been an update on the status of your application. Please log in to your account to view the changes.
+There has been an update on the status of your application. Please log in to your account to view the changes.
         
-        TRL Administration'''
+TRL Administration'''
 
     # Private method to execute an SQL query to help prevent against direct access to the execute query method
     def __executequery(self, query, params):
@@ -314,29 +314,36 @@ class JobRecommendationsView(QueryandemailClass):
             return Response(status=status.HTTP_404_NOT_FOUND)
         except Exception as caughterror:
             return Response({'error': str(caughterror)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+import logging
 #class to filter applicants based on their skills that match to a job (uses code in filterapplicants.py)
 class RecommendApplicanttoJob(APIView):
     permission_classes = [IsAdminUser]
-    
+
     def get(self, request, job_id):
         mostsuitableapplicants, suitableapplicants = filterapplicant(job_id)
         return Response({
             'mostsuitableapplicants': mostsuitableapplicants,
             'suitableapplicants': suitableapplicants
         })
-    
+
     def post(self, request, job_id=None):
         applicant_skills = request.data.get('applicant_skills')
-        
+
         if not applicant_skills:
             return Response({'error': 'Applicant skills are required'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            predictjobs = []
-            for _ in range(20):
+
+        def predict_jobs(applicant_skills, predictions, count):
+            if count == 0:
+                return predictions
+            try:
                 predicted_job_id = predict_job_matches(applicant_skills)
-                predictjobs.append(predicted_job_id)
+                predictions.append(predicted_job_id)
+                return predict_jobs(applicant_skills, predictions, count - 1)
+            except Exception as caughterror:
+                raise caughterror
+
+        try:
+            predictjobs = predict_jobs(applicant_skills, [], 20)
             mode = max(set(predictjobs), key=predictjobs.count)
             return Response({'predicted_job_id': mode}, status=status.HTTP_200_OK)
         except Exception as caughterror:
@@ -399,7 +406,7 @@ class UpdateRecruitmentTracker(QueryandemailClass):
 
         try:
             self._query('UPDATE TRL_applicantdetails SET recruitmenttracker = %s WHERE email = %s', [rtvalue, email])
-
+            self._notifyapplicant(email)
             if rtvalue == 3 and jobid:
                 applicant_id, _ = self._query('SELECT id FROM TRL_applicantdetails WHERE email = %s', [email])
                 if applicant_id:
@@ -413,19 +420,19 @@ class UpdateRecruitmentTracker(QueryandemailClass):
                     job = dict(zip([col[0] for col in job_description], job_rows[0]))
 
                 message = f'''
-                Dear {applicant['fullname']},
+Dear {applicant['fullname']},
 
-                We have found a job that matches your skills:
-                    
-                Job Title: {job['jobtitle']}
-                Company: {job['companyname']}
-                Salary: £{job['salary']}
-                Description: {job['jobdescription']}
-                Location: {job['location']}
-                Job Type: {job['jobtype']}
-                Deadline: {job['deadline']}
+We have found a job that matches your skills:
+    
+Job Title: {job['jobtitle']}
+Company: {job['companyname']}
+Salary: £{job['salary']}
+Description: {job['jobdescription']}
+Location: {job['location']}
+Job Type: {job['jobtype']}
+Deadline: {job['deadline']}
 
-                TRL Administration
+TRL Administration
                 '''
                 self._notifyapplicant(email, message)
             return Response(status=status.HTTP_200_OK)

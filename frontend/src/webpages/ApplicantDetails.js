@@ -38,7 +38,7 @@ const ApplicantDetails = () => {
   }, []);
   const validatePhoneNumber = (number) => {
     const isNumeric = /^\d+$/.test(number);
-    if (number.length !== 10 || !isNumeric) {
+    if (number.length !== 11 || !isNumeric) {
       setPhonenumberError(true);
     } else {
       setPhonenumberError(false);
@@ -46,8 +46,8 @@ const ApplicantDetails = () => {
   };
   const validateSkills = () => {
     const skills = [skill_1, skill_2, skill_3, skill_4, skill_5];
-    const uniqueSkills = new Set(skills.filter(skill => skill !== ""));
-    if (uniqueSkills.size !== skills.filter(skill => skill !== "").length) {
+    const uniqueSkills = new Set(skills.filter((skill) => skill !== ""));
+    if (uniqueSkills.size !== skills.filter((skill) => skill !== "").length) {
       setSkillError("Please ensure that no skill is repeated.");
       return false;
     } else {
@@ -60,7 +60,7 @@ const ApplicantDetails = () => {
     e.preventDefault();
     if (!e.target.checkValidity() || !validateSkills()) {
       e.stopPropagation();
-      e.target.classList.add('was-validated');
+      e.target.classList.add("was-validated");
       return;
     }
 
@@ -78,14 +78,14 @@ const ApplicantDetails = () => {
     formData.append("cv", cv);
     formData.append("recruitmenttracker", 1);
 
-    //sends the data to the backend 
+    //sends the data to the backend
     try {
       //gets the server time
       const timeResponse = await api.get("/applicant/servertime");
       if (timeResponse.status === 200) {
         const serverTime = timeResponse.data.server_time;
         formData.append("timestamp", serverTime);
-  
+
         const response = await api.post("/applicant/details/", formData);
         if (response.status === 201) {
           alert("Details updated!");
@@ -95,7 +95,9 @@ const ApplicantDetails = () => {
           alert("Failed to update details!", response.data);
         }
       } else {
-        alert("There was an error communicating with the backend server, please try again later!");
+        alert(
+          "There was an error communicating with the backend server, please try again later!"
+        );
       }
     } catch (error) {
       console.error("Error updating applicant details:", error);
@@ -144,7 +146,7 @@ const ApplicantDetails = () => {
     "Physiotherapy",
     "Doctorate",
     "Surgeon",
-    "Nursing"
+    "Nursing",
   ];
 
   return (
@@ -154,198 +156,224 @@ const ApplicantDetails = () => {
           <div className="col-md-8">
             <h2>Fill out your details!</h2>
             <p>Fields marked with '*' are required.</p>
-            <div
-              className="form-box"
-              style={{ maxHeight: "600px", overflowY: "auto" }}
+            <form
+              onSubmit={sendApplicantDetails}
+              className="row g-3 needs-validation"
+              noValidate
             >
-              <form
-                onSubmit={sendApplicantDetails}
-                className="row g-3 needs-validation"
-                noValidate
-              >
-                <div className="mb-3">
-                  <label className="form-label">Full name*</label>
-                  <input
-                    className="form-control"
-                    id="fullname"
-                    onChange={(e) => setfullname(e.target.value)}
-                    value={fullname}
-                    required
-                  />
-                  <div className="valid-feedback">Looks good!</div>
-                  <div className="invalid-feedback">
-                    Please enter your first name and your surname!
-                  </div>
+              <div className="mb-3">
+                <label className="form-label">Full name*</label>
+                <input
+                  className="form-control"
+                  id="fullname"
+                  onChange={(e) => setfullname(e.target.value)}
+                  value={fullname}
+                  required
+                />
+                <div className="valid-feedback">Looks good!</div>
+                <div className="invalid-feedback">
+                  Please enter your first name and your surname!
                 </div>
-                <div className="mb-3">
-                  <label htmlFor="email" className="form-label">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    className="form-control"
-                    id="email"
-                    value={email}
-                    readOnly
-                    required
-                  />
-                  <div className="valid-feedback">Looks good!</div>
-                  <div className="invalid-feedback">
-                    Please enter a valid email address!
-                  </div>
+              </div>
+              <div className="mb-3">
+                <label htmlFor="email" className="form-label">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  className="form-control"
+                  id="email"
+                  value={email}
+                  readOnly
+                  required
+                />
+                <div className="valid-feedback">Looks good!</div>
+                <div className="invalid-feedback">
+                  Please enter a valid email address!
                 </div>
-                <div className="mb-3">
-                  <label htmlFor="phonenumber" className="form-label">
-                    Phone Number*
-                  </label>
-                  <input
-                    className={`form-control ${phonenumberError ? "is-invalid" : ""}`}
-                    id="phonenumber"
-                    onChange={(e) => {
-                      setphonenumber(e.target.value);
-                      validatePhoneNumber(e.target.value);
-                   }}
-                    value={phonenumber}
-                    required
-                  />
-                  <div className="valid-feedback">Looks good!</div>
-                  <div className="invalid-feedback">
-                    Please enter a valid phone number! (Don't include a 0 at the start)
-                  </div>
+              </div>
+              <div className="mb-3">
+                <label htmlFor="phonenumber" className="form-label">
+                  Phone Number*
+                </label>
+                <input
+                  className={`form-control ${
+                    phonenumberError ? "is-invalid" : ""
+                  }`}
+                  id="phonenumber"
+                  onChange={(e) => {
+                    setphonenumber(e.target.value);
+                    validatePhoneNumber(e.target.value);
+                  }}
+                  value={phonenumber}
+                  required
+                />
+                <div className="valid-feedback">Looks good!</div>
+                <div className="invalid-feedback">
+                  Please enter a valid phone number!
                 </div>
-                <div className="mb-3">
-                  <label htmlFor="skill_1" className="form-label">
-                    Experience in what fields?*
-                  </label>
-                  <select
-                    className="form-select"
-                    id="skill_1"
-                    onChange={(e) => setskill_1(e.target.value)}
-                    value={skill_1}
-                    required
-                  >
-                    <option value="">Select a field</option>
-                    {skillOptions.map((option, index) => (
-                      <option key={index} value={option}>{option}</option>
-                    ))}
-                  </select>
-                  <div className="valid-feedback">Looks good!</div>
-                  <div className="invalid-feedback">Please select a field!</div>
+              </div>
+              <div className="mb-3">
+                <label htmlFor="skill_1" className="form-label">
+                  Experience in what fields?*
+                </label>
+                <select
+                  className="form-select"
+                  id="skill_1"
+                  onChange={(e) => setskill_1(e.target.value)}
+                  value={skill_1}
+                  required
+                >
+                  <option value="">Select a field</option>
+                  {skillOptions.map((option, index) => (
+                    <option key={index} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                <div className="valid-feedback">Looks good!</div>
+                <div className="invalid-feedback">Please select a field!</div>
+              </div>
+              {skillError && <div className="text-danger">{skillError}</div>}
+              <div className="mb-3">
+                <label htmlFor="skill_2" className="form-label">
+                  Experience in what fields?*
+                </label>
+                <select
+                  className="form-select"
+                  id="skill_2"
+                  onChange={(e) => setskill_2(e.target.value)}
+                  value={skill_2}
+                  required
+                >
+                  <option value="">Select a field</option>
+                  {skillOptions.map((option, index) => (
+                    <option key={index} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                <div className="valid-feedback">Looks good!</div>
+                <div className="invalid-feedback">Please select a field!</div>
+              </div>
+              {skillError && <div className="text-danger">{skillError}</div>}
+              <div className="mb-3">
+                <label htmlFor="skill_3" className="form-label">
+                  Experience in what fields? (Optional)
+                </label>
+                <select
+                  className="form-select"
+                  id="skill_3"
+                  onChange={(e) => setskill_3(e.target.value)}
+                  value={skill_3}
+                >
+                  <option value="">Select a field</option>
+                  {skillOptions.map((option, index) => (
+                    <option key={index} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {skillError && <div className="text-danger">{skillError}</div>}
+              <div className="mb-3">
+                <label htmlFor="skill_4" className="form-label">
+                  Experience in what fields? (Optional)
+                </label>
+                <select
+                  className="form-select"
+                  id="skill_4"
+                  onChange={(e) => setskill_4(e.target.value)}
+                  value={skill_4}
+                >
+                  <option value="">Select a field</option>
+                  {skillOptions.map((option, index) => (
+                    <option key={index} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {skillError && <div className="text-danger">{skillError}</div>}
+              <div className="mb-3">
+                <label htmlFor="skill_5" className="form-label">
+                  Experience in what fields? (Optional)
+                </label>
+                <select
+                  className="form-select"
+                  id="skill_5"
+                  onChange={(e) => setskill_5(e.target.value)}
+                  value={skill_5}
+                >
+                  <option value="">Select a field</option>
+                  {skillOptions.map((option, index) => (
+                    <option key={index} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {skillError && <div className="text-danger">{skillError}</div>}
+              <div className="mb-3">
+                <label htmlFor="qualifications" className="form-label">
+                  Qualifications:*
+                </label>
+                <textarea
+                  className="form-control"
+                  id="qualifications"
+                  onChange={(e) => setqualifications(e.target.value)}
+                  value={qualifications}
+                  required
+                />
+                <div className="valid-feedback">Looks good!</div>
+                <div className="invalid-feedback">
+                  Please enter your qualifications!
                 </div>
-                {skillError && <div className="text-danger">{skillError}</div>}
-                <div className="mb-3">
-                  <label htmlFor="skill_2" className="form-label">
-                    Experience in what fields?*
-                  </label>
-                  <select
-                    className="form-select"
-                    id="skill_2"
-                    onChange={(e) => setskill_2(e.target.value)}
-                    value={skill_2}
-                    required
-                  >
-                    <option value="">Select a field</option>
-                    {skillOptions.map((option, index) => (
-                      <option key={index} value={option}>{option}</option>
-                    ))}
-                  </select>
-                  <div className="valid-feedback">Looks good!</div>
-                  <div className="invalid-feedback">Please select a field!</div>
+              </div>
+              <div className="mb-3">
+                <label htmlFor="preferences" className="form-label">
+                  Preferences*
+                </label>
+                <select
+                  className="form-select"
+                  id="preferences"
+                  onChange={(e) => setpreferences(e.target.value)}
+                  value={preferences}
+                  required
+                >
+                  <option value="">Select a preference</option>
+                  <option value="Full Time">Full Time</option>
+                  <option value="Part Time">Part Time</option>
+                  <option value="Seasonal">Seasonal</option>
+                  <option value="Internship">Internship</option>
+                  <option value="Contract">Contract</option>
+                  <option value="Temporary">Temporary</option>
+                </select>
+                <div className="valid-feedback">Looks good!</div>
+                <div className="invalid-feedback">
+                  Please select a preference!
                 </div>
-                {skillError && <div className="text-danger">{skillError}</div>}
-                <div className="mb-3">
-                  <label htmlFor="skill_3" className="form-label">
-                    Experience in what fields? (Optional)
-                  </label>
-                  <select
-                    className="form-select"
-                    id="skill_3"
-                    onChange={(e) => setskill_3(e.target.value)}
-                    value={skill_3}
-                  >
-                    <option value="">Select a field</option>
-                    {skillOptions.map((option, index) => (
-                      <option key={index} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </div>
-                {skillError && <div className="text-danger">{skillError}</div>}
-                <div className="mb-3">
-                  <label htmlFor="skill_4" className="form-label">
-                    Experience in what fields? (Optional)
-                  </label>
-                  <select
-                    className="form-select"
-                    id="skill_4"
-                    onChange={(e) => setskill_4(e.target.value)}
-                    value={skill_4}
-                  >
-                    <option value="">Select a field</option>
-                    {skillOptions.map((option, index) => (
-                      <option key={index} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </div>
-                {skillError && <div className="text-danger">{skillError}</div>}
-                <div className="mb-3">
-                  <label htmlFor="skill_5" className="form-label">
-                    Experience in what fields? (Optional)
-                  </label>
-                  <select
-                    className="form-select"
-                    id="skill_5"
-                    onChange={(e) => setskill_5(e.target.value)}
-                    value={skill_5}
-                  >
-                    <option value="">Select a field</option>
-                    {skillOptions.map((option, index) => (
-                      <option key={index} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </div>
-                {skillError && <div className="text-danger">{skillError}</div>}
-                <div className="mb-3">
-                  <label htmlFor="qualifications" className="form-label">
-                    Qualifications:*
-                  </label>
-                  <textarea className="form-control" id="qualifications"onChange={(e) => setqualifications(e.target.value)} value={qualifications} required />
-                  <div className="valid-feedback">Looks good!</div>
-                  <div className="invalid-feedback">
-                    Please enter your qualifications!
-                  </div>
-                </div> 
-                <div className="mb-3">
-                  <label htmlFor="preferences" className="form-label">
-                    Preferences*
-                  </label>
-                  <select className="form-select" id="preferences" onChange={(e) => setpreferences(e.target.value)} value={preferences} required>
-                    <option value="">Select a preference</option>
-                    <option value="Full Time">Full Time</option>
-                    <option value="Part Time">Part Time</option>
-                    <option value="Seasonal">Seasonal</option>
-                    <option value="Internship">Internship</option>
-                    <option value="Contract">Contract</option>
-                    <option value="Temporary">Temporary</option>
-                  </select>
-                  <div className="valid-feedback">Looks good!</div>
-                  <div className="invalid-feedback">Please select a preference!</div>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="cv">Upload a CV* (Accepted formats: .pdf, .docx)</label>
-                  <br />
-                  <input type="file" id="cv" name="cv" onChange={handleCvChange} required />
-                  {cvError && <div className="text-danger">{cvError}</div>}
-                </div>
-                <div className="col-12 text-center">
-                  <button
-                    type="submit"
-                    className="btn btn-primary mt-3"
-                  >
-                    Submit
-                  </button>
-                </div>
-              </form>
-            </div>
+              </div>
+              <div className="form-group">
+                <label htmlFor="cv">
+                  Upload a CV* (Accepted formats: .pdf, .docx)
+                </label>
+                <br />
+                <input
+                  type="file"
+                  id="cv"
+                  name="cv"
+                  onChange={handleCvChange}
+                  required
+                />
+                {cvError && <div className="text-danger">{cvError}</div>}
+              </div>
+              <div className="col-12 text-center">
+                <button type="submit" className="btn btn-primary mt-3">
+                  Submit
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

@@ -8,7 +8,7 @@ SECRET_KEY = 'django-insecure-o4uv_mp(urjslx279-h=g)ly&--hl=3#p#3-r#@!(&13%6sq0n
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["ismailcode.kevcyg.net", "zorpal.kevcyg.net", "127.0.0.1"]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
